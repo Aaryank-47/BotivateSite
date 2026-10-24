@@ -31,9 +31,11 @@ export const subscribeCounts = (fn) => {
 
 // Pages call this right after an action that changes a server-side count (e.g. a task completed),
 // so the sidebar adjusts its badge at once ({ "pending-tasks": -1 }) and refetches instead of waiting for its poll.
+// meta.pendingTaskOwner: user id the changed pending task belongs to, so a member who only sees their own
+// tasks isn't bumped for someone else's.
 const refreshListeners = new Set();
 
-export const requestCountsRefresh = (delta = {}) => refreshListeners.forEach((fn) => fn(delta));
+export const requestCountsRefresh = (delta = {}, meta = {}) => refreshListeners.forEach((fn) => fn(delta, meta));
 
 export const onCountsRefresh = (fn) => {
   refreshListeners.add(fn);

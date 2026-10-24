@@ -491,10 +491,17 @@ const handleCompanyPermissions = (userData) => {
     load()
     const t = setInterval(load, 8000)
     // e.g. a task completed: adjust the badge now, then refetch the real counts
-    const off = onCountsRefresh((delta) => {
+    const seesAll = role === "admin" || role === "superadmin" || !!userFilterData?.isAdmin
+    const myId = userFilterData?.userId ?? userFilterData?.id ?? null
+    const off = onCountsRefresh((delta, { pendingTaskOwner } = {}) => {
       setPendingCounts((prev) => {
         const next = { ...prev }
-        for (const [k, d] of Object.entries(delta)) if (k in next) next[k] = Math.max(0, next[k] + d)
+        for (const [k, d] of Object.entries(delta)) {
+          if (!(k in next)) continue
+          // members only count their own pending tasks
+          if (k === "pending-tasks" && !seesAll && pendingTaskOwner != null && String(pendingTaskOwner) !== String(myId)) continue
+          next[k] = Math.max(0, next[k] + d)
+        }
         return next
       })
       load()

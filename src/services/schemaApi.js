@@ -4,6 +4,7 @@
 // (users [incl. company accounts], teams, systems, cmp_task, user_tasks)
 // ============================================================================
 import supabase from "../supabaseClient";
+import { requestCountsRefresh } from "../utils/sidebarCounts";
 
 // Clean up any deprecated localStorage task/entity overrides so browser stays strictly synced with Supabase DB
 try {
@@ -1381,8 +1382,10 @@ export const assignTester = async (row, { testers, expectedDate, remarks, assign
  * A test Done that finishes the delivery's testing marks the main task Completed.
  * Returns the new rework task id, if any.
  */
-const submitStageResult = (stage, row, { status, remarks, byUserId, byName }) =>
-  rpc("submit_stage_result", {
+const STAGE_BADGE = { test: "tester", approval: "approval-delivery", inform: "inform-customer" };
+
+const submitStageResult = async (stage, row, { status, remarks, byUserId, byName }) => {
+  const childId = await rpc("submit_stage_result", {
     p_testing_id: row.id,
     p_stage: stage,
     p_status: status,
@@ -1390,6 +1393,13 @@ const submitStageResult = (stage, row, { status, remarks, byUserId, byName }) =>
     p_by_user_id: byUserId ? Number(byUserId) : null,
     p_by_name: byName || null,
   });
+  // sidebar badges now, not on its next poll: the row leaves this stage's pending list, and an
+  // Issue / Not Done adds a sub-task to Pending Tasks for the person who made it
+  const delta = status === "Pending" ? {} : { [STAGE_BADGE[stage]]: -1 };
+  if (childId) delta["pending-tasks"] = 1;
+  requestCountsRefresh(delta, { pendingTaskOwner: row.made_by });
+  return childId;
+};
 
 const STAGE_FIELDS = {
   approval: ["approval_status", "approval_remarks", "approval_checked_at", "approval_checked_by"],
@@ -1582,79 +1592,100 @@ export const fetchStageBySystem = async (companyId) => {
 
 /** Pending item counts per pipeline stage for the sidebar badges (same rules as each stage's Pending tab). */
 export const fetchPendingCounts = async ({ userId = null, seesAll = false, withRequests = false, companyId = null } = {}) => {
-  const rows = await fetchTaskTesting();
-  const counts = {
-    "assign-tester": rows.filter((r) => !r.tester_id).length,
-    tester: rows.filter(
+  const counts = {};
+
+  // every badge is fetched at the same time, so the slowest query (not the sum of all) sets the delay
+  const stageCounts = async () => {
+    const rows = await fetchTaskTesting();
+    counts["assign-tester"] = rows.filter((r) => !r.tester_id).length;
+    counts.tester = rows.filter(
       (r) => r.tester_id && r.test_status === "Pending" && (seesAll || String(r.tester_id) === String(userId))
-    ).length,
-    "approval-delivery": groupDeliveries(rows).filter(
+    ).length;
+    counts["approval-delivery"] = groupDeliveries(rows).filter(
       (d) => testingDone(d) && currentRound(d).approval_status === "Pending"
-    ).length,
-    "inform-customer": informDeliveries(rows).filter((d) => d.inform_status === "Pending").length,
+    ).length;
+    counts["inform-customer"] = informDeliveries(rows).filter((d) => d.inform_status === "Pending").length;
   };
-  if (withRequests) {
+
+  const requestCounts = async () => {
+    if (!withRequests) return;
     try {
       counts["system-approvals"] = (await fetchSystemRequests()).filter((r) => r.status === "Pending").length;
     } catch {
       counts["system-approvals"] = 0;
     }
-  }
+  };
 
   // global counts for page-level badges
-  try {
-    const pendingQuery = (table) => {
-      let q = supabase
-        .from(table)
-        .select("*", { count: "exact", head: true })
-        .in("status", ["Pending", "In Progress"])
-        .not("assigned_member_1", "is", null);
-      if (!seesAll) {
-        if (companyId) q = q.eq("company_id", companyId);
-        else if (userId) q = q.eq("assigned_member_1", userId);
-      }
-      return q;
-    };
-    const [{ count: mainCount }, { count: subCount }] = await Promise.all([
-      pendingQuery("user_tasks"),
-      pendingQuery("task_subtasks"),
-    ]);
-    counts["pending-tasks"] = (mainCount || 0) + (subCount || 0);
-  } catch {
-    counts["pending-tasks"] = 0;
-  }
-
-  try {
-    const cl = await fetchChecklistTasks();
-    const wk = await fetchWeeklyCalls();
-    counts["checklist-pending"] =
-      cl.filter((t) => String(t.status || "").toLowerCase() !== "completed").length +
-      wk.filter((t) => String(t.status || "").toLowerCase() !== "completed").length;
-  } catch {
-    counts["checklist-pending"] = 0;
-  }
-
-  try {
-    let dt = await fetchDelegatedTasks();
-    dt = dt.filter((t) => String(t.status || "").toLowerCase() !== "completed");
-    if (!seesAll && userId) {
-      dt = dt.filter(t => String(t.assigned_to) === String(userId) || String(t.assigned_by) === String(userId));
+  const pendingTaskCounts = async () => {
+    try {
+      const pendingQuery = (table) => {
+        let q = supabase
+          .from(table)
+          .select("*", { count: "exact", head: true })
+          .in("status", ["Pending", "In Progress"])
+          .not("assigned_member_1", "is", null);
+        if (!seesAll) {
+          if (companyId) q = q.eq("company_id", companyId);
+          else if (userId) q = q.eq("assigned_member_1", userId);
+        }
+        return q;
+      };
+      const [{ count: mainCount }, { count: subCount }] = await Promise.all([
+        pendingQuery("user_tasks"),
+        pendingQuery("task_subtasks"),
+      ]);
+      counts["pending-tasks"] = (mainCount || 0) + (subCount || 0);
+    } catch {
+      counts["pending-tasks"] = 0;
     }
-    counts["delegation-tasks"] = dt.length;
-  } catch {
-    counts["delegation-tasks"] = 0;
-  }
+  };
 
-  try {
-    const ord = await fetchOrders();
-    counts["order-list"] = ord.filter(t => {
-      const s = String(t.status || "").toLowerCase();
-      return s !== "completed" && s !== "cancelled";
-    }).length;
-  } catch {
-    counts["order-list"] = 0;
-  }
+  const checklistCounts = async () => {
+    try {
+      const [cl, wk] = await Promise.all([fetchChecklistTasks(), fetchWeeklyCalls()]);
+      counts["checklist-pending"] =
+        cl.filter((t) => String(t.status || "").toLowerCase() !== "completed").length +
+        wk.filter((t) => String(t.status || "").toLowerCase() !== "completed").length;
+    } catch {
+      counts["checklist-pending"] = 0;
+    }
+  };
 
+  const delegationCounts = async () => {
+    try {
+      let dt = await fetchDelegatedTasks();
+      dt = dt.filter((t) => String(t.status || "").toLowerCase() !== "completed");
+      if (!seesAll && userId) {
+        dt = dt.filter(t => String(t.assigned_to) === String(userId) || String(t.assigned_by) === String(userId));
+      }
+      counts["delegation-tasks"] = dt.length;
+    } catch {
+      counts["delegation-tasks"] = 0;
+    }
+  };
+
+  const orderCounts = async () => {
+    try {
+      const ord = await fetchOrders();
+      counts["order-list"] = ord.filter(t => {
+        const s = String(t.status || "").toLowerCase();
+        return s !== "completed" && s !== "cancelled";
+      }).length;
+    } catch {
+      counts["order-list"] = 0;
+    }
+  };
+
+  // a failing testing fetch still rejects (the sidebar keeps its last counts), as before
+  await Promise.all([
+    stageCounts(),
+    requestCounts(),
+    pendingTaskCounts(),
+    checklistCounts(),
+    delegationCounts(),
+    orderCounts(),
+  ]);
   return counts;
 };
 
