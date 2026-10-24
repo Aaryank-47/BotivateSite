@@ -1,0 +1,290 @@
+/* ══════════════════════════════════════════════
+   AutoRocketComingSoon.css — Robot Rocket Ditto Design
+   ══════════════════════════════════════════════ */
+
+.r-cs-container {
+  height: 100vh;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #245865;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Rajdhani', -apple-system, sans-serif;
+  color: #ffffff;
+  padding: 0 4vw;
+}
+
+/* ── Space / Sky Overlay ── */
+.r-cs-space-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Planet Sketch */
+.r-cs-svg-planet-1 {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  left: 20%;
+  top: 18%;
+  opacity: 0.85;
+}
+
+/* Stars */
+.r-cs-stars {
+  position: absolute;
+  inset: 0;
+}
+
+.r-cs-star {
+  position: absolute;
+  animation: r-cs-twinkle 4s ease-in-out infinite;
+}
+
+@keyframes r-cs-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.85); }
+  50% { opacity: 0.75; transform: scale(1.15); }
+}
+
+/* Horizon Curve at the Bottom */
+.r-cs-horizon {
+  position: absolute;
+  bottom: -400px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1200px;
+  height: 600px;
+  border-radius: 50%;
+  border-top: 1.5px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 -20px 80px rgba(255, 255, 255, 0.02);
+}
+
+/* ── HEADER ── */
+.r-cs-header {
+  height: 96px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+}
+
+.r-cs-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.r-cs-logo-planet {
+  width: 28px;
+  height: 28px;
+}
+
+.r-cs-logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* ── MAIN LAYOUT ── */
+.r-cs-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 5;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Floating Hero Image Wrapper */
+.r-cs-hero-wrap {
+  position: relative;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.r-cs-hero-img {
+  width: clamp(240px, 40vw, 400px);
+  max-height: 42vh;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.15));
+}
+
+/* Subscription Form Area */
+.r-cs-form-wrap {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.r-cs-title {
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0 0 20px;
+}
+
+.r-cs-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+}
+
+/* Input Form Box */
+.r-cs-form {
+  width: 320px;
+  height: 44px;
+  border: 1.5px solid #ffffff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 0 0 16px;
+  background: transparent;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.r-cs-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0;
+}
+
+.r-cs-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.r-cs-submit {
+  width: 44px;
+  height: 100%;
+  background: transparent;
+  border: none;
+  border-left: 1.5px solid #ffffff;
+  outline: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.r-cs-submit:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.r-cs-check {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.r-cs-success {
+  width: 320px;
+  height: 44px;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* Left / Right Lines & Arrows */
+.r-cs-arrow-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.65;
+}
+
+.r-cs-arrow-line {
+  width: 64px;
+  height: 1px;
+  background: #ffffff;
+}
+
+.r-cs-arrow-tip {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* ── FOOTER ── */
+.r-cs-footer {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 10;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.r-cs-socials {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.r-cs-social-label {
+  margin-right: 4px;
+}
+
+.r-cs-socials a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.15s ease, transform 0.15s ease;
+  display: flex;
+  align-items: center;
+}
+
+.r-cs-socials a:hover {
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* ── RESPONSIVE ADAPTATIONS ── */
+@media (max-width: 768px) {
+  .r-cs-arrow-wrap {
+    display: none;
+  }
+  .r-cs-footer {
+    flex-direction: column-reverse;
+    justify-content: center;
+    gap: 14px;
+    height: auto;
+    padding: 24px 0;
+  }
+  .r-cs-logo-text {
+    font-size: 18px;
+  }
+  .r-cs-horizon {
+    width: 800px;
+  }
+}

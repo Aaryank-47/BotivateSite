@@ -1,0 +1,102 @@
+/* =============================================
+   About Teaser — homepage preview variant
+   Overrides / extends AboutUs base styles
+   ============================================= */
+
+/* Homepage teaser sits on the uniform white page background
+   (scoped so the standalone About page keeps its own background).
+   Compound selector raises specificity so it wins over the base
+   .about-us rule regardless of stylesheet bundle order. */
+.about-us.about-us--teaser {
+  background: #ffffff;
+}
+
+.at-header {
+  margin-bottom: 52px;
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 52px;
+}
+
+/* Match the homepage section-heading style for visual consistency
+   (scoped to the teaser so the full About page heading is unaffected) */
+.at-header .about-headline {
+  font-size: clamp(2rem, 3.8vw, 3rem);
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+
+.at-header .about-lead {
+  font-weight: 500;
+}
+
+/* ─── Stat highlight cards ─────────────────── */
+.at-highlights {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  margin-bottom: 44px;
+}
+
+.at-card {
+  flex: 1;
+  padding: 0 40px;
+  text-align: center;
+}
+
+.at-stat {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 5vw, 4.5rem);
+  font-weight: 800;
+  color: #334155;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  margin-bottom: 16px;
+}
+
+.at-label {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.at-desc {
+  font-size: 0.95rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ─── CTA row removed ──────────────────────── */
+
+/* ─── Responsive ───────────────────────────── */
+@media (max-width: 768px) {
+  .at-highlights {
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .at-card {
+    padding: 0 16px;
+    max-width: 480px;
+    text-align: center;
+  }
+
+  .at-stat {
+    margin-bottom: 12px;
+  }
+
+  .at-label {
+    margin-bottom: 8px;
+  }
+
+  .at-desc {
+    display: block;
+    font-size: 0.95rem;
+  }
+}

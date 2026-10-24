@@ -1,0 +1,139 @@
+/* ── Logo Strip ──────────────────────────────────────────── */
+.logo-strip {
+  width: 100%;
+  background: #ffffff;
+  padding: 28px 0 24px;
+  overflow: hidden;
+}
+
+.logo-strip-label {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b0b8c8;
+  margin: 0 0 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Faded edges mask */
+.logo-strip-mask {
+  position: relative;
+  overflow: hidden;
+}
+.logo-strip-mask::before,
+.logo-strip-mask::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 120px;
+  z-index: 2;
+  pointer-events: none;
+}
+.logo-strip-mask::before {
+  left: 0;
+  background: linear-gradient(to right, #ffffff 0%, transparent 100%);
+}
+.logo-strip-mask::after {
+  right: 0;
+  background: linear-gradient(to left, #ffffff 0%, transparent 100%);
+}
+
+/* Scrolling track */
+.logo-strip-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: max-content;
+  animation: logoScroll 40s linear infinite;
+  will-change: transform;
+}
+
+@keyframes logoScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Each logo item */
+.logo-strip-item {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 36px;
+}
+
+
+.logo-strip-item img {
+  max-height: 35px;
+  max-width: 180px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: none;
+  opacity: 0.85;
+  user-select: none;
+}
+
+/* Allow tall/square/circular logos to be taller so they match the visual weight of wide logos */
+.logo-strip-item img[src*="rama"],
+.logo-strip-item img[src*="mamta-hospital"],
+.logo-strip-item img[src*="delight-foods"],
+.logo-strip-item img[src*="elem-v2"],
+.logo-strip-item img[src*="piramal-petroleum"],
+.logo-strip-item img[src*="sansa"],
+.logo-strip-item img[src*="chandhok"],
+.logo-strip-item img[src*="divine-empire"],
+.logo-strip-item img[src*="pahlajanis"],
+.logo-strip-item img[src*="jagwani"],
+.logo-strip-item img[src*="mad-bakers"],
+.logo-strip-item img[src*="krishna"] {
+  max-height: 48px;
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .logo-strip {
+    padding: 22px 0 18px;
+  }
+  .logo-strip-item {
+    padding: 0 24px;
+  }
+  .logo-strip-item img {
+    max-height: 24px;
+    max-width: 110px;
+    width: auto;
+    height: auto;
+  }
+  /* Allow tall/square/circular logos to be taller on mobile */
+  .logo-strip-item img[src*="rama"],
+  .logo-strip-item img[src*="mamta-hospital"],
+  .logo-strip-item img[src*="delight-foods"],
+  .logo-strip-item img[src*="elem-v2"],
+  .logo-strip-item img[src*="piramal-petroleum"],
+  .logo-strip-item img[src*="sansa"],
+  .logo-strip-item img[src*="chandhok"],
+  .logo-strip-item img[src*="divine-empire"],
+  .logo-strip-item img[src*="pahlajanis"],
+  .logo-strip-item img[src*="jagwani"],
+  .logo-strip-item img[src*="mad-bakers"],
+  .logo-strip-item img[src*="krishna"] {
+    max-height: 32px;
+  }
+  .logo-strip-mask::before,
+  .logo-strip-mask::after {
+    width: 60px;
+  }
+}
+
+/* Delight Foods specific size increase */
+.logo-strip-item img[src*="delight-foods"] {
+  max-height: 62px;
+}
+@media (max-width: 640px) {
+  .logo-strip-item img[src*="delight-foods"] {
+    max-height: 42px;
+  }
+}

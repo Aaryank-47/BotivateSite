@@ -1,0 +1,944 @@
+/* =============================================
+   About Us Section
+   ============================================= */
+
+.about-us {
+  background: var(--bg-soft);
+  padding: var(--space-section);
+  overflow: hidden;
+  position: relative;
+}
+
+.about-circuit-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 480px;
+  background-image: url('../assets/hero-grid-circuit.webp');
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+  opacity: 0.6;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.about-inner {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: var(--container-pad);
+}
+
+/* ─── Header ─────────────────────────────────── */
+.about-header {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 80px;
+}
+
+.about-headline {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 4.2vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--text-primary);
+  margin-bottom: 22px;
+}
+
+.about-lead {
+  font-size: 17px;
+  color: var(--text-secondary);
+  line-height: 1.72;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+/* ─── Journey + Milestones — unified panel ───────── */
+.about-journey-row {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 0;
+  align-items: stretch;
+  margin-bottom: 88px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 40px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+/* Story column */
+.about-story {
+  padding: 48px 44px;
+}
+
+.about-story-tag {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 18px;
+}
+
+.about-story-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 2.4vw, 1.9rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.18;
+  color: var(--text-primary);
+  margin-bottom: 22px;
+}
+
+.about-story-text {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin-bottom: 14px;
+}
+
+/* ─── Journey Steps ──────────────────────────── */
+.journey-steps {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 6px 0 28px;
+}
+
+/* Connecting line running down the left of all steps */
+.journey-steps::before {
+  content: '';
+  position: absolute;
+  left: 17px;
+  top: 28px;
+  bottom: 28px;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    rgba(92, 104, 255, 0.25),
+    rgba(74, 209, 251, 0.2)
+  );
+}
+
+.journey-step {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 18px 0;
+  position: relative;
+}
+
+.journey-step + .journey-step {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Number badge — sits on the line */
+.journey-step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid rgba(92, 104, 255, 0.2);
+  font-size: 10px;
+  font-weight: 800;
+  color: #5c68ff;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  /* matches story column bg (#ffffff), not milestones bg (#f9faff) */
+  box-shadow: 0 0 0 3px #ffffff;
+}
+
+.journey-step-body {
+  padding-top: 6px;
+}
+
+.journey-step-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.015em;
+  margin-bottom: 5px;
+  line-height: 1.3;
+}
+
+.journey-step-text {
+  font-size: 13.5px;
+  color: rgba(0, 0, 0, 0.46);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.about-pullquote {
+  margin-top: 4px;
+  padding-left: 20px;
+  border-left: 3px solid var(--blue);
+  font-size: 15px;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Milestones column — list inside the shared panel ── */
+.about-milestones {
+  border-left: 1px solid rgba(0, 0, 0, 0.07);
+  background: #f9faff;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  /* sticky removed — parent overflow:hidden breaks it */
+}
+
+/* Column header — mirrors "Our Journey" tag on the left */
+.about-milestones-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.about-milestones-header span {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(0, 0, 0, 0.3);
+}
+
+/* Each milestone is a list row, not a standalone card */
+.about-milestone {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  box-shadow: none;
+  transition: background 0.2s ease;
+}
+
+.about-milestone:last-child {
+  border-bottom: none;
+}
+
+.about-milestone:hover {
+  background: rgba(92, 104, 255, 0.035);
+}
+
+/* Left accent line on hover */
+.about-milestone::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #5c68ff, #4ad1fb);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.about-milestone:hover::before {
+  opacity: 1;
+}
+
+.milestone-inner {
+  padding: 20px 22px 14px;
+}
+
+.milestone-category {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #5c68ff;
+  margin-bottom: 10px;
+}
+
+.milestone-value {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 2vw, 1.65rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: #0f0f12;
+  margin-bottom: 4px;
+}
+
+.milestone-value--big {
+  font-size: clamp(2.4rem, 4.5vw, 3.2rem);
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #5c68ff 0%, #3298fa 55%, #4ad1fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.milestone-value-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.36);
+  margin-bottom: 0;
+}
+
+.milestone-from {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 11.5px;
+  color: rgba(0, 0, 0, 0.33);
+  line-height: 1.4;
+  padding: 10px 22px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.milestone-from-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(0, 0, 0, 0.22);
+  flex-shrink: 0;
+}
+
+.milestone-sub {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.32);
+  line-height: 1.5;
+  margin: 0;
+  padding: 0 22px 14px;
+}
+
+/* ─── Pain Points ─────────────────────────────── */
+.about-pain-section {
+  margin-bottom: 88px;
+}
+
+.about-pain-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.about-pain-eyebrow {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 2.6vw, 1.85rem);
+  font-weight: 500;
+  letter-spacing: -0.022em;
+  color: var(--text-primary);
+  line-height: 1.25;
+  margin-bottom: 12px;
+}
+
+.about-pain-desc {
+  font-size: 15.5px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.about-pain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 36px;
+}
+
+.about-pain-item {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  transition: border-color var(--t-base) var(--ease), box-shadow var(--t-base) var(--ease);
+}
+
+.about-pain-item:hover {
+  border-color: rgba(255, 59, 48, 0.22);
+  box-shadow: 0 4px 18px rgba(255, 59, 48, 0.06);
+}
+
+.pain-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+  margin-top: 7px;
+}
+
+.about-pain-item p {
+  font-size: 14.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Resolution callout */
+.about-resolution {
+  position: relative;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2xl);
+  padding: 56px 64px;
+  text-align: center;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.about-resolution-glow-a {
+  position: absolute;
+  top: -60px;
+  left: 10%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(0, 113, 227, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.about-resolution-glow-b {
+  position: absolute;
+  bottom: -60px;
+  right: 10%;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.about-resolution-content {
+  position: relative;
+  z-index: 1;
+}
+
+.about-resolution-headline {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
+  line-height: 1.35;
+  margin-bottom: 18px;
+}
+
+.about-resolution-body {
+  font-size: 16px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 580px;
+  margin: 0 auto;
+}
+
+/* ─── Vision & Mission ───────────────────────── */
+.about-vm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.about-vm-card {
+  position: relative;
+  border-radius: var(--r-2xl);
+  padding: 48px 44px;
+  overflow: hidden;
+  transition: transform var(--t-base) var(--ease), border-color var(--t-base) var(--ease), box-shadow var(--t-base) var(--ease);
+}
+
+.about-vm-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.about-vm-vision {
+  background: linear-gradient(145deg, var(--bg-white) 0%, rgba(0, 113, 227, 0.02) 100%);
+  border: 1px solid rgba(0, 113, 227, 0.12);
+}
+
+.about-vm-vision:hover {
+  border-color: rgba(0, 113, 227, 0.28);
+}
+
+.about-vm-mission {
+  background: linear-gradient(145deg, var(--bg-white) 0%, rgba(6, 182, 212, 0.02) 100%);
+  border: 1px solid rgba(6, 182, 212, 0.12);
+}
+
+.about-vm-mission:hover {
+  border-color: rgba(6, 182, 212, 0.28);
+}
+
+.about-vm-glow {
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  pointer-events: none;
+  top: -80px;
+  right: -60px;
+}
+
+.about-vm-glow--blue {
+  background: radial-gradient(circle, rgba(0, 113, 227, 0.08) 0%, transparent 65%);
+}
+
+.about-vm-glow--cyan {
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, transparent 65%);
+}
+
+
+
+.about-vm-tag {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 22px;
+  position: relative;
+}
+
+.about-vm-vision .about-vm-tag {
+  color: var(--blue);
+}
+
+.about-vm-mission .about-vm-tag {
+  color: #0891b2; /* cyan-darker */
+}
+
+.about-vm-text {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.72;
+  letter-spacing: -0.01em;
+  position: relative;
+}
+
+/* ─── Values ─────────────────────────────────── */
+.about-values {
+  margin-bottom: 72px;
+}
+
+.about-values {
+  margin-top: 72px;
+  margin-bottom: 72px;
+}
+
+.about-values-header {
+  text-align: center;
+  margin-bottom: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.about-values-header .section-label {
+  margin-bottom: 0;
+}
+
+.about-values-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.5vw, 1.9rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.about-val-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.about-val-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 32px 36px;
+  transition: border-color var(--t-base) var(--ease), box-shadow var(--t-base) var(--ease);
+}
+
+.about-val-card:hover {
+  border-color: rgba(0, 113, 227, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 113, 227, 0.06);
+}
+
+.about-val-num {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, #5c68ff, #4ad1fb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 14px;
+}
+
+.about-val-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+
+.about-val-body {
+  font-size: 14.5px;
+  color: var(--text-secondary);
+  line-height: 1.68;
+  margin: 0;
+}
+
+/* ─── Bottom CTA ──────────────────────────────── */
+.about-bottom-cta {
+  position: relative;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2xl);
+  padding: 72px 80px;
+  text-align: center;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.about-cta-glow-a {
+  position: absolute;
+  top: -80px;
+  left: -40px;
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(92, 104, 255, 0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.about-cta-glow-b {
+  position: absolute;
+  bottom: -80px;
+  right: -40px;
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle, rgba(74, 209, 251, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.about-cta-content {
+  position: relative;
+  z-index: 1;
+}
+
+.about-cta-headline {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.about-cta-sub {
+  font-size: 16.5px;
+  color: var(--text-secondary);
+  line-height: 1.68;
+  max-width: 500px;
+  margin: 0 auto 40px;
+}
+
+.about-cta-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* ─── Responsive ─────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .about-journey-row {
+    grid-template-columns: 1fr;
+    margin-bottom: 64px;
+  }
+
+  .about-story {
+    padding: 40px 36px 32px;
+  }
+
+  .about-milestones {
+    border-left: none;
+    border-top: 1px solid rgba(0, 0, 0, 0.07);
+    flex-direction: row;
+  }
+
+  .about-milestones-header {
+    display: none;
+  }
+
+  .about-milestone {
+    flex: 1;
+    border-bottom: none;
+    border-right: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .about-milestone:last-child {
+    border-right: none;
+  }
+
+  .about-pain-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── Tablet portrait / large phone: milestones back to column ── */
+@media (max-width: 768px) {
+  .about-header {
+    margin-bottom: 48px;
+  }
+
+  .about-lead {
+    font-size: 15.5px;
+  }
+
+  .about-journey-row {
+    border-radius: 20px;
+    margin-bottom: 52px;
+  }
+
+  .about-story {
+    padding: 32px 28px 28px;
+  }
+
+  .about-story-title {
+    font-size: clamp(1.3rem, 4.5vw, 1.7rem);
+    margin-bottom: 18px;
+  }
+
+  /* Stack milestones back to column — 3-wide is too cramped at this width */
+  .about-milestones {
+    flex-direction: column;
+  }
+
+  .about-milestones-header {
+    display: block;
+  }
+
+  .about-milestone {
+    flex: unset;
+    border-right: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .about-milestone:last-child {
+    border-bottom: none;
+  }
+
+  .milestone-value--big {
+    font-size: clamp(2.2rem, 9vw, 3rem);
+  }
+
+  .about-resolution {
+    padding: 40px 28px;
+  }
+
+  .about-vm {
+    grid-template-columns: 1fr;
+  }
+
+  .about-val-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-bottom-cta {
+    padding: 48px 36px;
+  }
+}
+
+/* ── Mobile phone ── */
+@media (max-width: 480px) {
+  .about-header {
+    margin-bottom: 36px;
+  }
+
+  .about-headline {
+    font-size: clamp(1.8rem, 7.5vw, 2.4rem);
+  }
+
+  .about-lead {
+    font-size: 14.5px;
+    line-height: 1.68;
+  }
+
+  .about-journey-row {
+    border-radius: 16px;
+    margin-bottom: 44px;
+  }
+
+  .about-story {
+    padding: 26px 20px 22px;
+  }
+
+  .about-story-title {
+    font-size: clamp(1.2rem, 5.5vw, 1.5rem);
+    margin-bottom: 16px;
+  }
+
+  /* Tighten the timeline steps */
+  .journey-steps {
+    margin: 4px 0 20px;
+  }
+
+  .journey-step {
+    padding: 14px 0;
+    gap: 12px;
+    grid-template-columns: 30px 1fr;
+  }
+
+  .journey-step-num {
+    width: 30px;
+    height: 30px;
+    font-size: 9px;
+    box-shadow: 0 0 0 3px #ffffff;
+  }
+
+  /* Shift the connector line to match the smaller circle */
+  .journey-steps::before {
+    left: 15px;
+  }
+
+  .journey-step-body {
+    padding-top: 4px;
+  }
+
+  .journey-step-title {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .journey-step-text {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .about-pullquote {
+    font-size: 13.5px;
+    padding-left: 16px;
+    margin-top: 2px;
+  }
+
+  /* Milestone rows */
+  .about-milestones-header {
+    padding: 14px 18px 12px;
+  }
+
+  .milestone-inner {
+    padding: 16px 18px 12px;
+  }
+
+  .milestone-value--big {
+    font-size: clamp(2rem, 10vw, 2.8rem);
+  }
+
+  .milestone-value {
+    font-size: clamp(1.1rem, 4.5vw, 1.4rem);
+  }
+
+  .milestone-from {
+    padding: 9px 18px;
+    font-size: 11px;
+  }
+
+  .milestone-sub {
+    padding: 0 18px 12px;
+    font-size: 11px;
+  }
+
+  /* Pain section */
+  .about-pain-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .about-pain-section {
+    margin-bottom: 52px;
+  }
+
+  .about-pain-item {
+    padding: 16px 18px;
+    gap: 12px;
+  }
+
+  .about-pain-item p {
+    font-size: 13.5px;
+  }
+
+  .about-resolution {
+    padding: 28px 20px;
+    border-radius: 16px;
+  }
+
+  .about-resolution-headline {
+    font-size: clamp(1.1rem, 5vw, 1.4rem);
+  }
+
+  .about-resolution-body {
+    font-size: 14px;
+  }
+
+  .about-vm-card {
+    padding: 28px 22px;
+    border-radius: 16px;
+  }
+
+  .about-vm {
+    gap: 12px;
+  }
+
+  .about-val-card {
+    padding: 24px 22px;
+  }
+
+  .about-bottom-cta {
+    padding: 32px 20px;
+    border-radius: 16px;
+  }
+
+  .about-cta-headline {
+    font-size: clamp(1.3rem, 5.5vw, 1.8rem);
+    text-wrap: balance; /* MOB-9: avoid a lone word such as "business" on its own line */
+  }
+
+  .about-cta-sub {
+    font-size: 14.5px;
+  }
+
+  .about-cta-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .about-cta-buttons .btn {
+    width: 100%;
+    max-width: 280px;
+  }
+}

@@ -1,0 +1,293 @@
+.systems {
+  padding: var(--section-padding);
+  background: var(--bg-secondary);
+  position: relative;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+/* ── Section header ──────────────────────────────── */
+.systems-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  margin-bottom: 64px;
+}
+
+.systems-header-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: linear-gradient(135deg, rgba(92,104,255,0.08) 0%, rgba(50,152,250,0.08) 100%);
+  border: 1px solid rgba(92,104,255,0.18);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5c68ff;
+}
+
+.systems-header-label::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #5c68ff;
+  flex-shrink: 0;
+}
+
+.systems-header-h {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.systems-header-h-grad {
+  background: linear-gradient(135deg, #5c68ff 0%, #3298fa 45%, #4ad1fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.systems-header-p {
+  font-size: var(--text-lg, 1.0625rem);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 480px;
+  margin: 4px 0 0;
+}
+
+/* ── Layout ──────────────────────────────────────── */
+.bos-layout {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  justify-content: center;
+}
+
+/* ── Graph ───────────────────────────────────────── */
+/* Transitions live in CSS so they don't re-apply on every React render */
+.bos-node-g {
+  transition: opacity 0.18s ease;
+}
+
+.bos-link {
+  transition: opacity 0.18s ease;
+}
+
+.bos-graph-wrap {
+  flex: 1;
+  min-width: 0;
+  max-width: 680px;
+  background: #fff;
+  border: 1.5px solid rgba(0,0,0,0.07);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.06);
+}
+
+.bos-graph-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── Detail panel ────────────────────────────────── */
+@keyframes bos-panel-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.bos-panel {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px;
+  background: #fff;
+  border: 1.5px solid rgba(0,0,0,0.07);
+  border-radius: 20px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.05);
+  border-top: 3px solid var(--color);
+  animation: bos-panel-in 0.22s ease;
+}
+
+.bos-panel-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color) 10%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bos-panel-icon {
+  font-size: 20px;
+  color: var(--color);
+  display: flex;
+  align-items: center;
+}
+
+.bos-panel-cat {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color);
+  margin: -4px 0 -2px;
+}
+
+.bos-panel-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+.bos-panel-desc {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.bos-panel-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bos-panel-features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.bos-panel-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color);
+  flex-shrink: 0;
+}
+
+.bos-panel-connects {
+  padding-top: 12px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bos-panel-connects-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.35);
+}
+
+.bos-panel-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bos-panel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: color-mix(in srgb, var(--chip-color) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip-color) 20%, transparent);
+  border-radius: 100px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--chip-color);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+
+.bos-panel-chip:hover {
+  background: color-mix(in srgb, var(--chip-color) 16%, transparent);
+  border-color: color-mix(in srgb, var(--chip-color) 38%, transparent);
+}
+
+.bos-panel-hint {
+  font-size: 11.5px;
+  color: #b0b0c0;
+  margin: 0;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+/* ── Mobile fallback ─────────────────────────────── */
+.bos-mobile-grid {
+  display: none;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 40px;
+}
+
+.bos-mobile-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  background: #fff;
+  border: 1.5px solid rgba(0,0,0,0.07);
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.bos-mobile-icon {
+  font-size: 20px;
+  color: var(--color);
+  display: flex;
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 1100px) {
+  .bos-graph-wrap { max-width: 580px; }
+}
+
+@media (max-width: 900px) {
+  .bos-layout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 24px;
+  }
+  .bos-graph-wrap { max-width: 100%; }
+  .bos-panel { width: 100%; }
+}
+
+@media (max-width: 520px) {
+  .bos-layout { display: none; }
+  .bos-mobile-grid { display: grid; }
+  .systems-header { gap: 12px; }
+}

@@ -1,0 +1,1438 @@
+/* ── 1. GLOBAL LAYOUT ── */
+.svc-page {
+  position: relative;
+  padding: 80px 0 120px;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.svc-mesh-bg {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(92, 104, 255, 0.03) 0, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(50, 152, 250, 0.02) 0, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(92, 104, 255, 0.03) 0, transparent 50%);
+  pointer-events: none;
+}
+
+.svc-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  position: relative;
+  z-index: 5;
+}
+
+.svc-hero-header {
+  position: relative;
+  text-align: center;
+  max-width: 800px;
+  margin: -80px auto 0;
+  min-height: calc(100vh - 74px);
+  min-height: calc(100dvh - 74px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.svc-main-title {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(2.4rem, 5.5vw, 3.8rem);
+  font-weight: 800;
+  color: #1d1d1f;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  margin: 0 0 24px;
+}
+
+.svc-hero-lead {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+  color: #515154;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* ── 2. SERVICES SHOWCASE (CARD SWAP STACK) ── */
+.svc-swap-layout {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 48px;
+  align-items: center;
+  margin-bottom: 96px;
+}
+
+.svc-swap-eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #5c68ff;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.svc-swap-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  font-weight: 800;
+  color: #1d1d1f;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0 0 20px;
+}
+
+.svc-swap-desc {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #6b7280;
+  margin: 0;
+  max-width: 440px;
+}
+
+.svc-swap-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 560px;
+  min-width: 0;
+  padding: 140px 20px 20px;
+}
+
+.svc-swap-stage .card-swap-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── 2 (legacy). SERVICES ASYMMETRIC BENTO GRID ── */
+.svc-bento-layout {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 96px;
+}
+
+.svc-bento-card {
+  position: relative;
+  background: linear-gradient(155deg, #ffffff 0%, #fbfcff 100%);
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow:
+    0 24px 48px -12px rgba(15, 23, 42, 0.16),
+    0 4px 12px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+}
+
+.svc-bento-card--w2 {
+  grid-column: span 2;
+}
+
+.svc-bento-card--w1 {
+  grid-column: span 1;
+}
+
+/* Card Glow Effect */
+.svc-card-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(92, 104, 255, 0.06) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.svc-bento-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(92, 104, 255, 0.25);
+  box-shadow:
+    0 10px 30px rgba(92, 104, 255, 0.05),
+    0 0 0 1px rgba(92, 104, 255, 0.15);
+}
+
+.svc-bento-card:hover .svc-card-glow {
+  opacity: 1;
+}
+
+.svc-bento-card:hover .svc-bento-icon-wrap {
+  transform: scale(1.1) rotate(-6deg);
+  background: rgba(92, 104, 255, 0.14);
+}
+
+.svc-bento-icon-wrap {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.svc-bento-content {
+  position: relative;
+  z-index: 5;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-grow: 1;
+  gap: 24px;
+}
+
+.svc-bento-card--w1 .svc-bento-content {
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.svc-bento-card--w2 .svc-bento-content {
+  flex-direction: row;
+  align-items: center;
+}
+
+.svc-bento-text {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.svc-bento-card--w1 .svc-bento-text {
+  justify-content: flex-start;
+  flex: none;
+}
+
+.svc-bento-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(92, 104, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.svc-bento-icon {
+  font-size: 20px;
+  color: #5c68ff;
+}
+
+.svc-bento-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.svc-bento-desc {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ── BENTO VISUAL PREVIEWS ── */
+.svc-bento-visual {
+  flex: 0.9;
+  height: 100%;
+  min-height: 140px;
+  border-radius: 16px;
+  background: #0b0f19;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 16px;
+}
+
+.svc-bento-card--w1 .svc-bento-visual {
+  width: 100%;
+  height: 140px;
+  flex: none;
+}
+
+/* 1. Flow Node Visual */
+.svc-visual-flow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.svc-flow-node {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.svc-flow-node--active {
+  color: #ffffff;
+  background: #5c68ff;
+  border-color: #5c68ff;
+  animation: svc-flow-node-pulse 2.2s ease-in-out infinite;
+}
+
+.svc-flow-connector {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  animation: svc-flow-connector-run 1.6s ease-in-out infinite;
+}
+
+.svc-flow-connector:nth-of-type(3) {
+  animation-delay: 0.5s;
+}
+
+@keyframes svc-flow-node-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(92, 104, 255, 0.35); transform: scale(1); }
+  50% { box-shadow: 0 0 18px rgba(92, 104, 255, 0.65); transform: scale(1.06); }
+}
+
+@keyframes svc-flow-connector-run {
+  0% { opacity: 0.15; transform: translateX(-3px); }
+  50% { opacity: 0.9; transform: translateX(3px); }
+  100% { opacity: 0.15; transform: translateX(-3px); }
+}
+
+/* 2. Modules Tags Visual */
+.svc-visual-modules {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.svc-mod-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #8a9ba8;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  animation: svc-mod-glow 4.8s ease-in-out infinite;
+}
+
+.svc-mod-tag:nth-child(1) { animation-delay: 0s; }
+.svc-mod-tag:nth-child(2) { animation-delay: 1.2s; }
+.svc-mod-tag:nth-child(3) { animation-delay: 2.4s; }
+.svc-mod-tag:nth-child(4) { animation-delay: 3.6s; }
+
+@keyframes svc-mod-glow {
+  0%, 85%, 100% {
+    color: #8a9ba8;
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  15% {
+    color: #ffffff;
+    background: rgba(92, 104, 255, 0.12);
+    border-color: rgba(92, 104, 255, 0.4);
+    box-shadow: 0 0 12px rgba(92, 104, 255, 0.25);
+  }
+}
+
+/* 3. Charts Bars Visual */
+.svc-visual-charts {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 16px;
+  height: 100%;
+  width: 100%;
+  padding-top: 24px;
+}
+
+.svc-chart-bar {
+  width: 16px;
+  height: var(--h);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px 4px 0 0;
+  transition: all 0.3s ease;
+  animation: svc-bar-grow 2.4s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+.svc-chart-bar:nth-child(1) { animation-delay: 0.2s; }
+.svc-chart-bar:nth-child(2) { animation-delay: 0s; }
+.svc-chart-bar:nth-child(3) { animation-delay: 0.4s; }
+
+.svc-chart-bar--active {
+  background: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+@keyframes svc-bar-grow {
+  0%, 100% { transform: scaleY(0.85); }
+  50% { transform: scaleY(1.08); }
+}
+
+/* 4. Chat Bubble Visual */
+.svc-visual-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.svc-chat-bubble {
+  font-size: 10.5px;
+  max-width: 80%;
+  padding: 6px 12px;
+  border-radius: 12px;
+  line-height: 1.4;
+}
+
+.svc-chat-bubble--user {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  align-self: flex-start;
+  border-bottom-left-radius: 0;
+  animation: svc-chat-user-in 4s ease-in-out infinite;
+}
+
+.svc-chat-bubble--agent {
+  background: #8b5cf6;
+  color: #ffffff;
+  align-self: flex-end;
+  border-bottom-right-radius: 0;
+  animation: svc-chat-agent-in 4s ease-in-out infinite;
+}
+
+@keyframes svc-chat-user-in {
+  0%, 100% { opacity: 0; transform: translateY(6px); }
+  10%, 92% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes svc-chat-agent-in {
+  0%, 45% { opacity: 0; transform: translateY(8px) scale(0.94); box-shadow: 0 0 0 rgba(139, 92, 246, 0); }
+  60%, 92% { opacity: 1; transform: translateY(0) scale(1); box-shadow: 0 0 14px rgba(139, 92, 246, 0.45); }
+  100% { opacity: 0; transform: translateY(8px) scale(0.94); box-shadow: 0 0 0 rgba(139, 92, 246, 0); }
+}
+
+/* 5. Code Line Visual */
+.svc-visual-code {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  font-family: monospace;
+  font-size: 10.5px;
+  width: 100%;
+  gap: 6px;
+  background: #060913;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.svc-code-keyword {
+  color: #ff7b72;
+}
+
+.svc-code-boolean {
+  color: #79c0ff;
+}
+
+/* 6. Team Avatars Visual */
+.svc-visual-team {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svc-team-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #0b0f19;
+  background: #ec4899;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -8px;
+}
+
+.svc-team-avatar:first-child {
+  margin-left: 0;
+}
+
+/* 7. Audit Steps Visual */
+.svc-visual-audit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.svc-audit-step {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.svc-audit-step--done {
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.svc-audit-step--active {
+  background: rgba(20, 184, 166, 0.1);
+  color: #14b8a6;
+  border-color: rgba(20, 184, 166, 0.3);
+}
+
+/* 8. Support Status Visual */
+.svc-visual-support {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.svc-support-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px dashed #f97316;
+  position: relative;
+  animation: svc-pulse-line 3s infinite alternate;
+}
+
+.svc-support-status {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #f97316;
+}
+
+/* ── 2b. BENTO GRID SHOWCASE (OLD / GENERAL COMPLEMENTARY GRID) ── */
+.svc-bento-section {
+  margin-bottom: 96px;
+}
+
+.svc-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.svc-flip-card {
+  perspective: 1400px;
+  height: 200px;
+}
+
+.svc-flip-card--double {
+  grid-column: span 2;
+}
+
+.svc-flip-card--single {
+  grid-column: span 1;
+}
+
+.svc-flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.svc-flip-card:hover .svc-flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.svc-flip-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.svc-flip-face--front {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+  padding: 0;
+}
+
+.svc-flip-orb-bg {
+  position: absolute;
+  right: -20px;
+  bottom: -30px;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--flip-to, #6366f1), var(--flip-from, #4f46e5) 70%);
+  opacity: 0.88;
+  pointer-events: none;
+}
+
+.svc-flip-front-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.svc-flip-face--back {
+  background: #0f172a;
+  justify-content: center;
+  transform: rotateY(180deg);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.3);
+}
+
+.svc-flip-front-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.svc-flip-badge {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--flip-from, #5c68ff);
+  background: rgba(15, 23, 42, 0.05);
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.svc-flip-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+}
+
+.svc-flip-icon {
+  font-size: 19px;
+  color: #ffffff;
+}
+
+.svc-flip-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin: 14px 0 0;
+  letter-spacing: -0.02em;
+}
+
+.svc-flip-hint {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #6b7280;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.svc-flip-back-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a5b4fc;
+  margin-bottom: 8px;
+}
+
+.svc-flip-back-desc {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.82);
+  margin: 0;
+}
+
+/* ── 3. CORE COMMITMENTS (IMAGE CARDS) ── */
+.svc-commitments-section {
+  margin-bottom: 96px;
+}
+
+.svc-section-header {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 48px;
+}
+
+.svc-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #5c68ff;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.svc-section-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.svc-commitments-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.svc-commit-card {
+  position: relative;
+  height: 380px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: flex-end;
+  padding: 36px;
+  background: #111;
+}
+
+.svc-commit-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.svc-commit-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.92) 15%, rgba(15, 23, 42, 0.65) 50%, rgba(15, 23, 42, 0.25) 100%);
+  transition: opacity 0.4s ease;
+}
+
+.svc-commit-content {
+  position: relative;
+  z-index: 5;
+  color: #ffffff;
+}
+
+.svc-commit-card-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.svc-commit-card-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+  opacity: 0.85;
+}
+
+/* Card hover animation */
+.svc-commit-card:hover .svc-commit-bg {
+  transform: scale(1.08);
+}
+
+/* ── 4. STAT COUNTER BANNER ── */
+.svc-stats-banner {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.04);
+  border-radius: 28px;
+  padding: 48px 64px;
+  margin-bottom: 96px;
+  overflow: hidden;
+}
+
+.svc-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+}
+
+.svc-stat-item {
+  position: relative;
+  text-align: center;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.svc-stat-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  right: -16px;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(15, 23, 42, 0.12) 50%, transparent);
+}
+
+.svc-stat-item:hover {
+  transform: translateY(-2px);
+}
+
+.svc-stat-val {
+  font-family: var(--font-display), sans-serif;
+  font-size: 3.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #5c68ff 0%, #3298fa 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 8px;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.svc-stat-item:hover .svc-stat-val {
+  transform: scale(1.06);
+}
+
+.svc-stat-lbl {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: color 0.3s ease;
+}
+
+.svc-stat-item:hover .svc-stat-lbl {
+  color: #1d1d1f;
+}
+
+/* ── 5. EXECUTION WORKFLOW (ACCORDION) ── */
+.svc-flow-section {
+  margin-bottom: 96px;
+}
+
+.svc-section-desc {
+  font-size: 15px;
+  color: #6b7280;
+  margin: 12px 0 0;
+  line-height: 1.6;
+}
+
+.svc-flow-accordion {
+  background: #0f172a;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.svc-flow-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.svc-flow-item:last-child {
+  border-bottom: none;
+}
+
+.svc-flow-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  padding: 28px 44px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.3s ease;
+}
+
+.svc-flow-trigger-num {
+  font-family: var(--font-display), monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.3);
+  margin-right: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.svc-flow-trigger-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  flex-grow: 1;
+  transition: color 0.3s ease;
+}
+
+.svc-flow-trigger-arrow {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 20px;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
+}
+
+.svc-flow-trigger:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.svc-flow-item--open .svc-flow-trigger {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.svc-flow-item--open .svc-flow-trigger-num {
+  background: #5c68ff;
+  border-color: #5c68ff;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(92, 104, 255, 0.4);
+}
+
+.svc-flow-item--open .svc-flow-trigger-title {
+  color: #ffffff;
+}
+
+.svc-flow-item--open .svc-flow-trigger-arrow {
+  transform: rotate(90deg);
+  color: #ffffff;
+}
+
+.svc-flow-content-wrap {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.svc-flow-item--open .svc-flow-content-wrap {
+  max-height: 600px;
+}
+
+.svc-flow-content {
+  padding: 0 44px 44px 96px;
+  position: relative;
+}
+
+.svc-flow-liquid-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 10% 50%, rgba(92, 104, 255, 0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.svc-flow-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 64px;
+  position: relative;
+  z-index: 2;
+}
+
+.svc-flow-tagline {
+  font-size: 15px;
+  font-weight: 600;
+  color: #a5b4fc;
+  margin: 0 0 12px;
+}
+
+.svc-flow-desc {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.svc-flow-deliverables {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.svc-deliv-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #a5b4fc;
+  letter-spacing: 0.08em;
+  margin: 0 0 16px;
+  text-transform: uppercase;
+}
+
+.svc-deliv-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.svc-deliv-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.svc-deliv-dot {
+  width: 6px;
+  height: 6px;
+  background: #5c68ff;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px #5c68ff;
+}
+
+/* ── 6. BOTTOM CTA ── */
+.svc-cta-box {
+  background: #ffffff;
+  border: none;
+  border-radius: 28px;
+  padding: 88px 48px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+/* Subtle tech grid, faded out towards the top and edges */
+.svc-cta-mesh {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 25%, black 0%, transparent 78%);
+  mask-image: radial-gradient(ellipse 70% 65% at 50% 25%, black 0%, transparent 78%);
+}
+
+/* Soft brand-colour glow, top-right */
+.svc-cta-glow {
+  position: absolute;
+  top: -140px;
+  right: -140px;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(92, 104, 255, 0.32) 0%, rgba(92, 104, 255, 0.12) 45%, transparent 75%);
+  filter: blur(10px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.svc-cta-inner {
+  position: relative;
+  z-index: 5;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.svc-cta-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  margin: 0 0 16px;
+  line-height: 1.15;
+}
+
+.svc-cta-sub {
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0 0 36px;
+}
+
+.svc-cta-btns {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.svc-cta-signup-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #4a58ff 0%, #2080f0 60%, #00c8f8 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 16px 40px;
+  border-radius: 999px;
+  box-shadow: 0 14px 28px rgba(74, 88, 255, 0.32);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.svc-cta-signup-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 36px rgba(74, 88, 255, 0.4);
+}
+
+/* ── ANIMATION KEYFRAMES ── */
+@keyframes svc-pulse-glow {
+  0% { transform: scale(1); opacity: 0.14; }
+  100% { transform: scale(1.15); opacity: 0.22; }
+}
+
+@keyframes svc-spin-cw {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes svc-spin-ccw {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(-360deg); }
+}
+
+@keyframes svc-pulse-line {
+  0% { transform: translate(-50%, -50%) rotate(45deg) scaleX(0.85); opacity: 0.4; }
+  100% { transform: translate(-50%, -50%) rotate(45deg) scaleX(1.15); opacity: 0.85; }
+}
+
+@keyframes svc-float {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-8px); }
+}
+
+/* ── RESPONSIVE DESIGN ── */
+@media (max-width: 1024px) {
+  .svc-swap-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .svc-swap-intro {
+    text-align: center;
+  }
+  .svc-swap-desc {
+    margin: 0 auto;
+  }
+  .svc-swap-stage {
+    min-height: 500px;
+    padding: 160px 20px 20px;
+    overflow: hidden;
+  }
+  .svc-bento-layout {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .svc-bento-card--w2 {
+    grid-column: span 2;
+  }
+  .svc-bento-card--w1 {
+    grid-column: span 1;
+  }
+  .svc-bento-content {
+    flex-direction: column !important;
+    gap: 16px;
+  }
+  .svc-bento-visual {
+    width: 100% !important;
+    height: 140px !important;
+    flex: none !important;
+  }
+  .svc-bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .svc-flip-card--double {
+    grid-column: span 2;
+  }
+  .svc-flip-card--single {
+    grid-column: span 1;
+  }
+  .svc-commitments-grid {
+    grid-template-columns: 1fr;
+  }
+  .svc-commit-card {
+    height: 320px;
+  }
+}
+
+@media (max-width: 768px) {
+  .svc-page {
+    padding: 64px 0 80px;
+  }
+  .svc-hero-header {
+    margin-bottom: 48px;
+  }
+  .svc-swap-stage {
+    min-height: 440px;
+    padding: 150px 20px 20px;
+    overflow: hidden;
+  }
+  .svc-bento-grid {
+    grid-template-columns: 1fr;
+  }
+  .svc-flip-card--double,
+  .svc-flip-card--single {
+    grid-column: span 1;
+  }
+  /* Below tablet width there's no reliable hover, so drop the flip
+     interaction and show a compact horizontal icon+title row with the
+     description directly underneath instead of the large centered block. */
+  .svc-flip-card {
+    height: auto;
+    perspective: none;
+  }
+  .svc-flip-card-inner {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    transform: none !important;
+  }
+  .svc-flip-face {
+    position: relative;
+    inset: auto;
+    backface-visibility: visible;
+    transform: none !important;
+    padding: 18px 20px;
+  }
+  .svc-flip-face--front {
+    border-radius: 20px 20px 0 0;
+  }
+  .svc-flip-face--back {
+    border-radius: 0 0 20px 20px;
+    justify-content: flex-start;
+    padding-top: 16px;
+    padding-bottom: 20px;
+  }
+  .svc-flip-front-content {
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+  .svc-flip-front-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .svc-flip-badge {
+    display: none;
+  }
+  .svc-flip-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+  .svc-flip-icon {
+    font-size: 18px;
+  }
+  .svc-flip-title {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+  .svc-flip-orb-bg {
+    width: 100px;
+    height: 100px;
+    right: -25px;
+    bottom: -35px;
+    opacity: 0.5;
+  }
+  .svc-flip-back-label {
+    font-size: 10px;
+    margin-bottom: 8px;
+  }
+  .svc-flip-back-desc {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .svc-flip-hint {
+    display: none;
+  }
+  .svc-stats-banner {
+    padding: 32px;
+  }
+  .svc-stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .svc-stat-item {
+    padding-bottom: 20px;
+  }
+  .svc-stat-item::after {
+    display: none;
+  }
+  .svc-stat-item:nth-child(1)::before,
+  .svc-stat-item:nth-child(2)::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    bottom: -12px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(15, 23, 42, 0.12) 50%, transparent);
+  }
+  .svc-stat-item:nth-child(3),
+  .svc-stat-item:nth-child(4) {
+    padding-bottom: 0;
+  }
+  .svc-flow-trigger {
+    padding: 22px 24px;
+  }
+  .svc-flow-content {
+    padding: 0 24px 28px 24px;
+  }
+  .svc-flow-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .svc-cta-box {
+    padding: 44px 24px;
+  }
+  .svc-cta-btns {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .svc-cta-btns .btn {
+    width: 100%;
+  }
+}
+
+/* Very narrow phones (320px): keep both stat columns fully visible */
+@media (max-width: 360px) {
+  .svc-stats-banner {
+    padding: 24px 16px;
+  }
+  .svc-stats-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px 12px;
+  }
+  .svc-stat-val {
+    font-size: 2.4rem;
+  }
+  .svc-stat-lbl {
+    letter-spacing: 0.04em;
+  }
+}
+
+@media (max-width: 640px) {
+  /* .svc-page's overflow:hidden + the container's fixed 24px side padding
+     was clipping the mobile card shadow's blur radius. CardSwap's wide fan
+     (the thing overflow:hidden was guarding against) isn't rendered on
+     mobile, so it's safe to open this up at this breakpoint. */
+  .svc-page {
+    overflow: visible;
+  }
+  /* Below this width the CardSwap 3D stack is replaced with a plain list. */
+  .svc-swap-stage {
+    min-height: auto;
+    padding: 0;
+    display: block;
+  }
+  /* ScrollStack: cards pin and stack as the page scrolls past this section. */
+  .svc-swap-mobile-stack {
+    width: 100%;
+  }
+  .svc-swap-mobile-stack .scroll-stack-scroller {
+    height: auto;
+    overflow: visible;
+  }
+  .svc-swap-mobile-stack .scroll-stack-inner {
+    padding: 8px 0 40px;
+    min-height: auto;
+  }
+  .svc-swap-mobile-stack .scroll-stack-end {
+    height: 0;
+  }
+  /* Override the generic scroll-stack-card box so our bento card styling
+     (background, border, radius, shadow) drives the look instead. */
+  .svc-swap-mobile-stack .scroll-stack-card {
+    height: auto;
+    width: 100%;
+    max-width: 340px;
+    margin: 0 auto;
+    padding: 20px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), 0 4px 12px rgba(15, 23, 42, 0.06);
+    border-radius: 20px;
+  }
+  .svc-swap-mobile-stack .scroll-stack-card + .scroll-stack-card {
+    margin-top: 0;
+  }
+  .svc-swap-mobile-stack .svc-bento-icon-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  .svc-swap-mobile-stack .svc-bento-icon {
+    font-size: 16px;
+  }
+  .svc-swap-mobile-stack .svc-bento-title {
+    font-size: 1.05rem;
+    margin-bottom: 6px;
+  }
+  .svc-swap-mobile-stack .svc-bento-desc {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .svc-swap-mobile-stack .svc-bento-visual,
+  .svc-swap-mobile-stack .svc-bento-card--w1 .svc-bento-visual {
+    height: 90px;
+    min-height: 90px;
+    padding: 10px;
+  }
+  .svc-swap-mobile-stack .svc-bento-card--w1 .svc-bento-content {
+    gap: 10px;
+  }
+  .svc-bento-layout {
+    grid-template-columns: 1fr;
+  }
+  .svc-bento-card--w2,
+  .svc-bento-card--w1 {
+    grid-column: span 1;
+  }
+  .svc-bento-card {
+    padding: 24px;
+    min-height: auto;
+  }
+}

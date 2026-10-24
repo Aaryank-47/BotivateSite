@@ -1,0 +1,297 @@
+.technologies {
+  padding: var(--section-padding);
+  background: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.technologies::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 1;
+  width: 600px; height: 600px;
+  bottom: -150px; right: -150px;
+  background: radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 65%);
+}
+
+/* ── Header ── */
+.technologies-header {
+  text-align: center;
+  margin-bottom: 40px;
+  max-width: var(--container-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--container-padding);
+  padding-bottom: 0;
+}
+
+.tech-wheel-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tech-wheel {
+  position: relative;
+  width: 720px;
+  height: 720px;
+  flex-shrink: 0;
+}
+
+.tech-wheel-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Center hub (click to stop/resume) ── */
+.tech-hub {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) translateZ(40px);
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #ffffff, #f0f4ff);
+  border: 1.5px solid rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  z-index: 10;
+  box-shadow:
+    0 24px 48px rgba(0,0,0,0.12),
+    0 8px 24px rgba(0,0,0,0.06),
+    0 0 0 8px rgba(255,255,255,0.6);
+  /* button reset */
+  cursor: pointer;
+  user-select: none;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  transition: transform 0.35s var(--ease), box-shadow 0.45s var(--ease);
+}
+.tech-hub:hover {
+  transform: translate(-50%, -50%) translateZ(52px) scale(1.04);
+}
+.tech-hub:active {
+  transform: translate(-50%, -50%) translateZ(40px) scale(0.98);
+}
+.tech-hub:focus-visible {
+  box-shadow:
+    0 24px 48px rgba(0,0,0,0.12),
+    0 0 0 4px rgba(0,113,227,0.35),
+    0 0 0 8px rgba(255,255,255,0.6);
+}
+/* Brand-blue halo when wheel is hovered */
+.tech-wheel-wrap:hover .tech-hub {
+  box-shadow:
+    0 28px 56px rgba(0,113,227,0.18),
+    0 8px 24px rgba(0,113,227,0.10),
+    0 0 0 8px rgba(255,255,255,0.7),
+    0 0 32px 6px rgba(0,113,227,0.15);
+}
+
+.tech-hub-ring {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+.tech-hub-label {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.tech-hub-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Category labels (non-rotating) ── */
+.tech-cat-label {
+  position: absolute;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--cat-color);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ── Rings (JS-driven rotation) ── */
+.tech-ring {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  pointer-events: none;
+}
+
+/* ── Tech nodes ── */
+.tech-node {
+  position: absolute;
+  transform: translate(-50%, -50%) translateZ(0);
+  z-index: 6;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.tech-node-spin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.tech-node-magnet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.22s ease;
+}
+
+.tech-node:hover .tech-node-magnet {
+  transform: translateY(-4px) scale(1.15);
+}
+
+.tech-node-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(150,150,150,0.25);
+  font-size: 18px;
+  color: var(--brand);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  transition: border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.tech-node:hover .tech-node-icon {
+  border-color: var(--brand);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15), 0 0 0 2px var(--brand);
+}
+
+.tech-node-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: color 0.22s ease;
+  max-width: 54px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.tech-node:hover .tech-node-label {
+  color: var(--brand);
+}
+
+.tech-node--outer .tech-node-icon {
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+  background: var(--bg-secondary);
+}
+.tech-node--outer .tech-node-label {
+  font-size: 8.5px;
+  max-width: 46px;
+}
+
+
+/* ── Mobile fallback grid ── */
+.tech-mobile-grid {
+  display: none;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--container-padding);
+}
+.tech-mobile-cat {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.tech-mobile-cat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cat-color);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+.tech-mobile-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.tech-mobile-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-height: 32px;
+}
+.tech-mobile-pill svg {
+  font-size: 13px;
+  color: var(--brand);
+  flex-shrink: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+  .tech-wheel { width: 560px; height: 560px; }
+}
+@media (max-width: 800px) {
+  .tech-wheel { width: 460px; height: 460px; }
+}
+@media (max-width: 720px) {
+  .tech-wheel-wrap { display: none; }
+  .tech-mobile-grid { display: grid !important; }
+}
+@media (max-width: 480px) {
+  .tech-mobile-grid {
+    /* keep 2 columns — they remain readable at 390px */
+    gap: 10px;
+  }
+  .tech-mobile-cat {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .tech-mobile-grid {
+    grid-template-columns: 1fr;
+  }
+}

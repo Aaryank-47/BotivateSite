@@ -1,0 +1,108 @@
+/* ============================================
+   HERO — Option 2: Clean Statement Hero
+   Centered, single-column, capability-first
+   ============================================ */
+
+.hs-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #ffffff;
+  padding: 40px clamp(20px, 5vw, 40px) 40px;
+  min-height: calc(100vh - 74px);
+}
+
+@media (max-width: 768px) {
+  .hs-hero {
+    min-height: auto;
+    padding: 64px 20px 56px;
+  }
+}
+
+/* ── Background ── */
+.hs-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hs-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 42%, black 10%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 42%, black 10%, transparent 72%);
+}
+
+/* ── Content ── */
+.hs-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.hs-headline {
+  font-family: var(--font-body);
+  font-size: clamp(2.2rem, 4.5vw, 3.8rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  color: #0a0a0f;
+  margin: 0;
+}
+
+.hs-sub {
+  max-width: 660px;
+  font-size: clamp(15px, 1.4vw, 17.5px);
+  line-height: 1.7;
+  color: #5b5b66;
+  font-weight: 500;
+  margin: 0;
+}
+
+.hs-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.hs-trust {
+  justify-content: center;
+  margin-top: 10px;
+}
+
+@media (max-width: 560px) {
+  .hs-actions { 
+    width: 100%; 
+    padding: 0 10px;
+  }
+  .hs-actions .btn {
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
+    white-space: nowrap;
+    text-align: center;
+    padding: 12px 14px;
+    min-height: 44px; /* MOB-8: keep the CTA at least 44px tall on 320px screens */
+    font-size: clamp(11px, 3.8vw, 15px);
+    border-radius: 999px;
+  }
+  .hs-trust {
+    gap: 12px;
+  }
+}

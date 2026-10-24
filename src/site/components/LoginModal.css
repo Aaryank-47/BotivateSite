@@ -1,0 +1,561 @@
+/* ============================================
+   LOGIN MODAL — Split-panel premium design
+   ============================================ */
+
+/* ── Backdrop ─────────────────────────────── */
+.lm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+
+.lm-backdrop.is-open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ── Card shell ───────────────────────────── */
+.lm-card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-width: 740px;
+  min-height: 520px;
+  background: #ffffff;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.05),
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    0 40px 100px rgba(0, 0, 0, 0.16);
+  /* 3D spring entrance */
+  transform: scale(0.95) translateY(20px);
+  transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+}
+
+.lm-backdrop.is-open .lm-card {
+  transform: scale(1) translateY(0);
+}
+
+/* ── Left brand panel ─────────────────────── */
+.lm-brand {
+  position: relative;
+  width: 290px;
+  flex-shrink: 0;
+  background: linear-gradient(145deg, #2a32d4 0%, #1a75e8 52%, #16c0f4 100%);
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Subtle grid overlay */
+.lm-brand-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+
+/* Orbs */
+.lm-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(52px);
+}
+
+.lm-orb--1 {
+  width: 240px;
+  height: 240px;
+  background: rgba(255, 255, 255, 0.14);
+  top: -80px;
+  right: -70px;
+  animation: lmOrbDrift 9s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.lm-orb--2 {
+  width: 160px;
+  height: 160px;
+  background: rgba(255, 255, 255, 0.09);
+  bottom: -30px;
+  left: -40px;
+  animation: lmOrbDrift 11s ease-in-out infinite alternate-reverse;
+  will-change: transform;
+}
+
+@keyframes lmOrbDrift {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(14px, 10px) scale(1.06); }
+}
+
+/* Logo */
+.lm-brand-logo {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 36px;
+}
+
+.lm-brand-logo-img {
+  height: 44px;
+  width: auto;
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+
+/* Headline copy */
+.lm-brand-copy {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+}
+
+.lm-brand-headline {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #ffffff !important;
+  line-height: 1.18;
+  letter-spacing: -0.035em;
+  margin-bottom: 12px;
+}
+
+.lm-brand-sub {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.6;
+  font-weight: 400;
+  margin-bottom: 24px;
+}
+
+/* Floating stat chips */
+.lm-chip {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 980px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+  width: fit-content;
+}
+
+.lm-chip--1 {
+  margin-top: auto;
+}
+
+.lm-chip--2 {
+  margin-top: 8px;
+}
+
+.lm-chip--3 {
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.lm-chip svg {
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.lm-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #30d158;
+  box-shadow: 0 0 6px rgba(48, 209, 88, 0.9);
+  flex-shrink: 0;
+  animation: lmPulse 2s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes lmFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+@keyframes lmPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(48, 209, 88, 0.9); }
+  50%       { opacity: 0.6; box-shadow: 0 0 3px rgba(48, 209, 88, 0.4); }
+}
+
+/* ── Right form panel ─────────────────────── */
+.lm-form-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 44px 40px;
+  position: relative;
+  background: #ffffff;
+}
+
+/* ── Close button ─────────────────────────── */
+.lm-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f5f5f7;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.38);
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.lm-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #1d1d1f;
+}
+
+/* ── Form header ──────────────────────────── */
+.lm-form-header {
+  margin-bottom: 28px;
+}
+
+.lm-eyebrow {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #5c68ff;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+}
+
+.lm-title {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.lm-sub {
+  font-size: 13.5px;
+  color: #86868b;
+  font-weight: 400;
+}
+
+/* ── Form fields ──────────────────────────── */
+.lm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.lm-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lm-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+/* ── Form Options (Remember & Forgot) ─────── */
+.lm-form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.lm-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.lm-remember span {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #86868b;
+  transition: color 0.16s ease;
+}
+
+.lm-remember:hover span {
+  color: #1d1d1f;
+}
+
+.lm-checkbox {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #d2d2d7;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lm-checkbox:checked {
+  background: #5c68ff;
+  border-color: #5c68ff;
+}
+
+.lm-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 4.5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+.lm-checkbox:focus-visible {
+  outline: 2px solid rgba(92, 104, 255, 0.4);
+  outline-offset: 2px;
+}
+
+.lm-forgot {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5c68ff;
+  text-decoration: none;
+  transition: opacity 0.16s ease;
+}
+
+.lm-forgot:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* ── Input ────────────────────────────────── */
+.lm-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.lm-input-icon {
+  position: absolute;
+  left: 13px;
+  display: flex;
+  align-items: center;
+  color: #aeaeb2;
+  pointer-events: none;
+  z-index: 1;
+  transition: color 0.18s ease;
+}
+
+/* Icon highlight on focus */
+.lm-input-wrap:focus-within .lm-input-icon {
+  color: #5c68ff;
+}
+
+.lm-input {
+  width: 100%;
+  padding: 11px 14px 11px 40px;
+  background: #f5f5f7;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: #1d1d1f;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow   0.18s ease,
+    background   0.18s ease;
+}
+
+.lm-input::placeholder { color: #c7c7cc; }
+
+.lm-input:focus {
+  background: #ffffff;
+  border-color: rgba(92, 104, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(92, 104, 255, 0.1);
+}
+
+/* ── Password ─────────────────────────────── */
+.lm-pw-wrap .lm-input {
+  padding-right: 42px;
+}
+
+/* Hide browser native password reveal so only our eye button shows */
+.lm-pw-wrap .lm-input::-ms-reveal,
+.lm-pw-wrap .lm-input::-ms-clear {
+  display: none;
+}
+.lm-pw-wrap .lm-input::-webkit-credentials-auto-fill-button,
+.lm-pw-wrap .lm-input::-webkit-textfield-decoration-container {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.lm-pw-toggle {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: #aeaeb2;
+  transition: color 0.16s ease, background 0.16s ease;
+  z-index: 2;
+}
+
+.lm-pw-toggle:hover {
+  color: #1d1d1f;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* ── Footer ───────────────────────────────── */
+.lm-form-footer {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.lm-footer-text {
+  font-size: 13px;
+  color: #86868b;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.lm-contact-link {
+  color: #5c68ff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.lm-contact-link:hover {
+  color: #2a32d4;
+  text-decoration: underline;
+}
+
+/* ── Responsive ───────────────────────────── */
+
+/* Tablet: shrink brand panel */
+@media (max-width: 680px) {
+  .lm-brand {
+    display: none;
+  }
+
+  .lm-card {
+    max-width: 420px;
+    min-height: unset;
+    border-radius: 20px;
+  }
+
+  .lm-form-panel {
+    padding: 40px 28px 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lm-form-panel {
+    padding: 36px 22px 30px;
+  }
+
+  .lm-title {
+    font-size: 1.45rem;
+  }
+
+  /* Touch targets (MOB-3): ensure close button is at least 44x44px on mobile */
+  .lm-close {
+    top: 10px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Password toggle: 44x44px hit area with centered icon */
+  .lm-pw-toggle {
+    right: 4px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .lm-pw-wrap .lm-input {
+    padding-right: 50px;
+  }
+
+  /* Remember me checkbox and label */
+  .lm-remember {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px 6px 0;
+  }
+
+  .lm-checkbox {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .lm-checkbox:checked::after {
+    left: 6px;
+    top: 2.5px;
+    width: 5px;
+    height: 9.5px;
+  }
+
+  .lm-contact-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+

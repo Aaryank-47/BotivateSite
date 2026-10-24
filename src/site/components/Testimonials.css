@@ -1,0 +1,352 @@
+/* =============================================
+   Testimonials — Flat Grid & Logo Marquee (AutoRocket Style)
+   ============================================= */
+
+.testimonials {
+  background: #ffffff;
+  padding: 80px 0 60px;
+  position: relative;
+}
+
+/* ─── Inner ────────────────────────────────── */
+.t-inner {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* ─── Header ───────────────────────────────── */
+.t-header {
+  text-align: center;
+  padding: 0 24px 48px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.t-headline {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.8vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin: 0 0 16px;
+}
+
+.t-subtext {
+  font-size: 17px;
+  color: var(--text-secondary);
+  line-height: 1.72;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* ─── Logo Strip ───────────────────────────── */
+.t-logo-strip {
+  overflow: hidden;
+  margin-top: 48px;
+  margin-bottom: 56px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 24px 0;
+}
+
+.t-logo-mask {
+  position: relative;
+  overflow: hidden;
+}
+
+.t-logo-mask::before,
+.t-logo-mask::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 100px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.t-logo-mask::before {
+  left: 0;
+  background: linear-gradient(to right, #ffffff 0%, transparent 100%);
+}
+
+.t-logo-mask::after {
+  right: 0;
+  background: linear-gradient(to left, #ffffff 0%, transparent 100%);
+}
+
+.t-logo-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  animation: tLogoScroll 40s linear infinite;
+  will-change: transform;
+}
+
+@keyframes tLogoScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.t-logo-item {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 32px;
+}
+
+.t-logo-item img {
+  height: 32px;
+  max-width: 120px;
+  width: auto;
+  object-fit: contain;
+  opacity: 1;
+  user-select: none;
+}
+
+/* ─── Card ─────────────────────────────────── */
+.t-card {
+  padding: 52px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  transition: none;
+}
+
+.t-card:nth-child(even) {
+  border-right: none;
+}
+
+.t-card--full {
+  grid-column: 1 / -1;
+  border-right: none;
+  max-width: 680px;
+}
+
+/* ─── Quote ────────────────────────────────── */
+.t-quote {
+  font-size: 15.5px;
+  color: #1a1a1a;
+  line-height: 1.75;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  flex: 1;
+}
+
+/* ─── Author ───────────────────────────────── */
+.t-author {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-top: none;
+  padding-top: 0;
+}
+
+.t-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.t-author-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.t-author-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1a1a1a;
+  font-family: 'Inter', sans-serif;
+}
+
+.t-author-role {
+  font-size: 12px;
+  color: #888;
+  font-family: 'Inter', sans-serif;
+}
+
+.t-company-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: -0.03em;
+  opacity: 0.55;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ─── 3-Column Scrolling Grid ──────────────── */
+.t-scroll-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 0 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.t-col-mask {
+  position: relative;
+  height: 580px;
+  overflow: hidden;
+}
+
+.t-col-mask::before,
+.t-col-mask::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 80px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.t-col-mask::before {
+  top: 0;
+  background: linear-gradient(to bottom, #ffffff 0%, transparent 100%);
+}
+
+.t-col-mask::after {
+  bottom: 0;
+  background: linear-gradient(to top, #ffffff 0%, transparent 100%);
+}
+
+.t-col-track {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  will-change: transform;
+}
+
+@keyframes tScrollUp {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+@keyframes tScrollDown {
+  0%   { transform: translateY(-50%); }
+  100% { transform: translateY(0); }
+}
+
+.t-track-up {
+  animation: tScrollUp linear infinite;
+}
+
+.t-track-down {
+  animation: tScrollDown linear infinite;
+}
+
+.t-col-mask:hover .t-col-track {
+  animation-play-state: paused;
+}
+
+.t-scroll-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+.t-scroll-quote {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #555;
+  margin: 0 0 16px;
+  font-family: 'Inter', sans-serif;
+}
+
+.t-scroll-highlight {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.t-scroll-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.t-scroll-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.t-scroll-author-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.t-scroll-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  font-family: 'Inter', sans-serif;
+}
+
+.t-scroll-role {
+  font-size: 11.5px;
+  color: #999;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ─── Responsive ───────────────────────────── */
+@media (max-width: 900px) {
+  .t-scroll-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .t-scroll-grid > .t-col-mask:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .t-grid {
+    grid-template-columns: 1fr;
+  }
+  .t-card {
+    border-right: none;
+    padding: 36px 24px;
+  }
+  .t-card--full {
+    max-width: 100%;
+  }
+  .t-scroll-grid {
+    grid-template-columns: 1fr;
+  }
+  .t-scroll-grid > .t-col-mask:not(:first-child) {
+    display: none;
+  }
+  .t-col-mask {
+    height: 400px;
+  }
+}

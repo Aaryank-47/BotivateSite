@@ -1,0 +1,373 @@
+/* ══════════════════════════════════════════════
+   ProductBanner — Botivate OS Water Emergence
+   Light mode, premium feel
+   ══════════════════════════════════════════════ */
+
+.pb {
+  position: relative;
+  padding: 80px 24px 72px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 480px;
+  contain: layout paint;
+}
+
+/* Dot grid texture — masked to center ellipse */
+.pb-grid {
+  position: absolute;
+  inset: 0;
+  mask-image: radial-gradient(ellipse 75% 60% at 50% 50%, black 20%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 75% 60% at 50% 50%, black 20%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Canvas fills the full section */
+.pb-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  /* Fade the wave out before it reaches the bottom so it doesn't sit
+     visually under the description/chips on tall mobile layouts */
+  mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 85%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 55%, transparent 85%);
+}
+
+
+/* ── Content ────────────────────────────────── */
+
+.pb-content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 720px;
+  width: 100%;
+  gap: 0;
+}
+
+.pb-name-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: clamp(52px, 12vw, 72px); /* Pushed lower for better balance */
+}
+
+/* ── Product name — the hero element ── */
+.pb-name {
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 11vw, 8.5rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  white-space: nowrap; /* Prevent TM symbol from wrapping below the name */
+}
+
+.pb-name-black {
+  color: #1d1d1f;
+  -webkit-text-fill-color: #1d1d1f;
+}
+
+.pb-name-tm {
+  font-size: 0.14em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2em;
+  height: 2.2em;
+  border: 0.08em solid #1d1d1f;
+  border-radius: 50%;
+  vertical-align: 4.8em; /* Elevated superscript positioning */
+  margin-left: 0.15em;
+  font-family: var(--font-body), -apple-system, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #1d1d1f;
+  -webkit-text-fill-color: #1d1d1f;
+  line-height: 1;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.pb-name-grad {
+  background: linear-gradient(135deg, #5c68ff 0%, #3298fa 50%, #4ad1fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Ripple rings — sit below the text at the waterline ── */
+.pb-ripples {
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.pb-ripple {
+  position: absolute;
+  width: clamp(220px, 50vw, 360px);
+  height: clamp(36px, 5.6vw, 56px);
+  border-radius: 50%;
+  border: 1.5px solid rgba(92, 104, 255, 0.45);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.2);
+  /* GSAP drives scale and opacity */
+}
+
+/* ── "Introducing" typewriter line ── */
+.pb-intro {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  font-size: clamp(1.9rem, 4.5vw, 3rem);
+  min-height: 1.6em;
+  margin-bottom: 20px;
+}
+
+.pb-intro-text {
+  font-family: var(--font-body);
+  font-size: clamp(1.9rem, 4.5vw, 3rem);
+  font-weight: 400;
+  color: #1d1d1f;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  
+  /* CSS typewriter effect */
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 0;
+  border-right: 2.5px solid transparent;
+  vertical-align: middle;
+}
+
+.pb-intro.pb-intro--active .pb-intro-text {
+  animation: 
+    pb-typing-intro 0.9s steps(11, end) forwards,
+    pb-blink-intro 0.75s ease-in-out infinite;
+}
+
+.pb-intro.pb-intro--done .pb-intro-text {
+  border-right-color: transparent;
+  animation: pb-typing-intro 0.9s steps(11, end) forwards;
+  transition: border-color 0.3s ease;
+}
+
+@keyframes pb-typing-intro {
+  from { width: 0; }
+  to   { width: 11ch; } 
+}
+
+@keyframes pb-blink-intro {
+  0%, 100% { border-right-color: #1d1d1f; }
+  50%       { border-right-color: transparent; }
+}
+
+/* ── Typewriter line ── */
+.pb-typewriter {
+  display: block; /* Switch from flex to block for inline text flow */
+  text-align: center;
+  min-height: 2.8em;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.pb-typewriter-text {
+  display: inline; /* Keep cursor attached to text end */
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 4vw, 1.3rem);
+  font-weight: 400;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.pb-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background: #5c68ff;
+  border-radius: 1px;
+  margin-left: 4px; /* Perfectly close to text */
+  vertical-align: middle;
+  flex-shrink: 0;
+  animation: pb-blink 1.1s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes pb-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.15; }
+}
+
+/* ── Description block (text + chip strip) ── */
+.pb-desc-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.pb-desc {
+  font-size: 17px;
+  color: var(--text-muted);
+  line-height: 1.75;
+  max-width: 480px;
+  font-weight: 400;
+  margin: 0;
+  text-align: center;
+}
+
+.pb-word {
+  display: inline;
+}
+
+/* ── Chip strip ── */
+.pb-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 560px;
+}
+
+.pb-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 100px;
+  background: linear-gradient(135deg, rgba(92, 104, 255, 0.07) 0%, rgba(50, 152, 250, 0.07) 100%);
+  border: 1px solid rgba(92, 104, 255, 0.16);
+  font-size: 13px;
+  font-weight: 600;
+  color: #5c68ff;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.pb-chip--more {
+  background: transparent;
+  border-color: rgba(0, 0, 0, 0.08);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ── Buttons ── */
+.pb-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  /* GSAP sets initial opacity */
+}
+
+/* ── Responsive ─────────────────────────────── */
+
+@media (max-width: 900px) {
+  .pb {
+    padding: 60px 24px 52px;
+    min-height: 400px;
+  }
+
+  .pb-name-wrap {
+    margin-bottom: 36px;
+  }
+}
+
+@media (max-width: 768px) {
+  .pb {
+    padding: 48px 24px 40px;
+    min-height: 360px;
+  }
+
+  .pb-desc {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 640px) {
+  .pb {
+    padding: 44px 20px 36px;
+    min-height: 320px;
+  }
+
+  .pb-name {
+    letter-spacing: -0.04em;
+    font-size: clamp(3rem, 14vw, 5rem);
+  }
+
+  /* Trademark (MOB-7): larger on phones; raise adjusted so it sits in the same place */
+  .pb-name-tm {
+    font-size: max(0.2em, 11px);
+    vertical-align: 3.36em;
+  }
+
+  .pb-ripple {
+    width: min(240px, 70vw);
+    height: 36px;
+  }
+
+  .pb-intro-text {
+    font-size: clamp(1.4rem, 5.5vw, 2rem);
+  }
+
+  .pb-desc {
+    font-size: 14px;
+    max-width: 100%;
+  }
+
+  .pb-chips {
+    gap: 6px;
+    max-width: 100%;
+  }
+
+  .pb-chip {
+    font-size: 12px;
+    padding: 5px 11px;
+  }
+
+  .pb-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .pb-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .pb {
+    padding: 36px 16px 28px;
+  }
+
+  .pb-name {
+    font-size: clamp(2.6rem, 16vw, 4rem);
+  }
+
+  .pb-name-wrap {
+    margin-bottom: 60px; /* Even lower on very small screens */
+  }
+}

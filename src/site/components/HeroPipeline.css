@@ -1,0 +1,228 @@
+/* ============================================
+   HERO — Concept 1: Live Process Pipeline
+   Layers on top of Hero.css (shared shell)
+   ============================================ */
+
+/* Sidebar system icon accents */
+.hb-i--dispatch { background: #2563eb; }
+.hb-i--purchase { background: #0891b2; }
+.hb-i--hr       { background: #7c3aed; }
+
+/* ── Item banner (what is flowing through the system) ── */
+.hp-itembar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(37, 99, 235, 0.03);
+}
+.hp-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #2563eb;
+}
+.hp-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.7);
+  animation: hpPulse 1.5s ease-in-out infinite;
+}
+.hero--paused .hp-live-dot { animation-play-state: paused; }
+@keyframes hpPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.hp-item-id {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+.hp-item-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* ── Vertical stage timeline ── */
+.hp-flow {
+  flex: 1;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hp-row {
+  display: flex;
+  gap: 12px;
+}
+
+/* Rail = node + connecting line */
+.hp-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 18px;
+}
+.hp-node {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.hp-node--done {
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}
+.hp-node--active {
+  background: #fff;
+  border: 2.5px solid #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.16);
+  animation: hpNodePulse 1.6s ease-in-out infinite;
+}
+.hero--paused .hp-node--active { animation-play-state: paused; }
+@keyframes hpNodePulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.16); }
+  50%      { box-shadow: 0 0 0 7px rgba(37, 99, 235, 0.06); }
+}
+.hp-node--pending {
+  background: #fff;
+  border: 2px solid #d8dde6;
+}
+
+.hp-line {
+  flex: 1;
+  width: 2px;
+  min-height: 14px;
+  background: #e2e8f0;
+  margin: 2px 0;
+  transition: background 0.3s ease;
+}
+.hp-line.is-filled { background: #10b981; }
+
+/* Stage body */
+.hp-body {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 10px;
+}
+.hp-stage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 18px;
+}
+.hp-stage-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hp-row--pending .hp-stage-label { color: #94a3b8; font-weight: 500; }
+
+.hp-state {
+  font-size: 8.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.hp-state--done    { color: #10b981; background: #dcfce7; }
+.hp-state--active  { color: #2563eb; background: #eff6ff; }
+.hp-state--pending { color: #94a3b8; background: #f1f5f9; }
+
+/* Active-stage action card */
+.hp-card {
+  margin-top: 8px;
+  padding: 11px 12px;
+  background: #fff;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.hp-card-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.hp-card-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #111827;
+}
+.hp-card-sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: #6e6e73;
+}
+.hp-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+.hp-action:hover { filter: brightness(1.05); }
+.hp-action:active { transform: scale(0.98); }
+.hp-action-arrow { font-size: 14px; line-height: 1; margin-top: -1px; }
+
+/* Completion banner */
+.hp-finish {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.hp-finish-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .hp-flow { padding: 12px 14px; }
+}

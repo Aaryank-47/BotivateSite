@@ -1,0 +1,265 @@
+.founder {
+  padding: var(--section-padding);
+  background: var(--bg-primary);
+  position: relative;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.founder-inner {
+  max-width: var(--container-width);
+  margin: 0 auto;
+  padding: var(--container-padding);
+}
+
+/* ── Header ── */
+.founder-header {
+  text-align: center;
+  margin-bottom: 44px;
+}
+
+/* ── Light editorial card ── */
+.founder-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: 28px;
+  overflow: hidden;
+  will-change: opacity;
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── Main body ── */
+.founder-body {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  column-gap: 0;
+  row-gap: 64px;
+  padding: 64px 64px 48px;
+  align-items: start;
+}
+
+/* ── Left — identity ── */
+.founder-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-right: 64px;
+  border-right: 1px solid;
+  border-image: linear-gradient(to bottom, transparent, var(--border-light) 20%, var(--border-light) 80%, transparent) 1;
+}
+
+/* Avatar ring */
+.founder-avatar-ring {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  padding: 2px;
+  background: var(--border-light);
+  flex-shrink: 0;
+}
+
+.founder-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: -0.02em;
+}
+
+/* Name block */
+.founder-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.founder-name {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.founder-role {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+/* Bio */
+.founder-bio {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 260px;
+}
+
+/* Signature SVG */
+.founder-sig svg {
+  width: 100px;
+  height: 32px;
+  margin-top: 4px;
+  opacity: 0.6;
+}
+
+
+/* ── Right — quote ── */
+.founder-quote-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-left: 64px;
+  position: relative;
+}
+
+.founder-quote {
+  font-family: var(--font-body), -apple-system, sans-serif;
+  font-style: normal;
+  font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  letter-spacing: -0.02em;
+  margin: 0;
+  border: none;
+  padding: 0;
+  position: relative;
+}
+
+.founder-quote-caption {
+  font-size: 13.5px;
+  color: var(--text-tertiary);
+  line-height: 1.65;
+  max-width: 420px;
+}
+
+/* ── Stats strip ── */
+.founder-stats {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+}
+
+.founder-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 28px 32px;
+  border-right: 1px solid var(--border-light);
+  transition: background var(--transition-fast);
+}
+
+.founder-stat:last-child {
+  border-right: none;
+}
+
+.founder-stat:hover {
+  background: var(--bg-primary);
+}
+
+.founder-stat-value {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 2.5vw, 2.2rem);
+  font-weight: 500;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.founder-stat-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  /* Container padding shrinks below the card's shadow blur radius on small
+     screens; without this the section's own overflow:hidden was clipping
+     the shadow's sides instead of letting it fade out cleanly. */
+  .founder {
+    overflow: visible;
+  }
+
+  .founder-body {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 40px 32px 32px;
+  }
+
+  .founder-identity {
+    padding-right: 0;
+    border-right: none;
+    border-image: none;
+  }
+
+  .founder-quote-wrap { padding-left: 0; }
+
+  .founder-quote {
+    font-size: clamp(1.2rem, 3.5vw, 1.6rem);
+  }
+
+  .founder-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .founder-stat {
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+    padding: 22px 24px;
+  }
+
+  .founder-stat:nth-child(odd) {
+    border-right: 1px solid var(--border-light);
+  }
+
+  .founder-stat:nth-last-child(-n+2) {
+    border-bottom: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .founder-card { border-radius: 16px; }
+
+  .founder-body {
+    padding: 28px 20px 24px;
+    gap: 24px;
+  }
+
+  .founder-stats { grid-template-columns: repeat(2, 1fr); }
+
+  .founder-stat { padding: 18px 16px; }
+
+  .founder-stat-value {
+    font-size: clamp(1.3rem, 5vw, 1.8rem);
+  }
+}
+
+@media (max-width: 380px) {
+  .founder-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .founder-stat {
+    padding: 14px 12px;
+  }
+}

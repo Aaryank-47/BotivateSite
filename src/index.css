@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* ── Unified dropdown (native <select>) look, app-wide ───────────────────────
+   Custom chevron + consistent padding. Selects that already draw their own
+   chevron overlay use the `appearance-none` class and are left untouched. */
+select:not([multiple]):not([size]):not(.appearance-none) {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 2.25rem;
+  cursor: pointer;
+  text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+select:not([multiple]):not([size]):not(.appearance-none):hover:not(:disabled) {
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.08);
+}
+
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+select option {
+  padding: 0.5rem 0.75rem;
+  color: #111827;
+  background-color: #fff;
+}
+
+/* ── Compact look for the task form when shown inside a pop-up ───────────────
+   Drops the nested card / header / "Task 1" heading and tightens the spacing. */
+.compact-form .max-w-5xl { max-width: none; }
+.compact-form .shadow-lg { box-shadow: none; border-width: 0; }
+.compact-form .bg-gradient-to-r.from-blue-50 { display: none; }
+.compact-form .task-heading-main { display: none; }
+.compact-form .p-6, .compact-form .p-5 { padding: 0.25rem; }
+.compact-form .bg-gray-50.border { background: transparent; border-width: 0; padding: 0; }
+.compact-form .space-y-6, .compact-form .space-y-4 { display: flex; flex-direction: column; gap: 0.6rem; }
+.compact-form .space-y-6 > *, .compact-form .space-y-4 > * { margin-block: 0 !important; }
+.compact-form .gap-4 { gap: 0.6rem 0.9rem; }
+.compact-form .gap-6 { gap: 0.75rem 1rem; }
+.compact-form label.block { margin-bottom: 0.25rem; }
+.compact-form .mb-4 { margin-bottom: 0.4rem; }
+.compact-form .pt-6 { padding-top: 0.4rem; }
+.compact-form .py-3 { padding-top: 0.45rem; padding-bottom: 0.45rem; }
+.compact-form .p-6.text-center { padding: 1.5rem; }
+.compact-form .form-header { display: none; }
+.compact-form .form-card { border-width: 0; box-shadow: none; border-radius: 0; }
+.compact-form form { padding: 0.25rem !important; }
+.compact-form h3.text-lg { font-size: 0.95rem; margin-bottom: 0.4rem; }
+.compact-form .border-t.border-gray-100.pt-2 { padding-top: 0.25rem; }
+
+/* ── Dashboard polish: calm, flat, WhatsApp-style surfaces ───────────────────
+   Soft neutral page, white rounded cards with hairline borders (no heavy shadows),
+   pill controls and slim scrollbars. Applied app-wide; marketing pages unaffected
+   because they do not use these utility combinations on <main>. */
+main .shadow-sm,
+main .shadow-md,
+main .shadow-lg {
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+main input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+main textarea {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+main input:focus,
+main textarea:focus {
+  outline: none;
+}
+
+main *::-webkit-scrollbar { width: 8px; height: 8px; }
+main *::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 9999px; }
+main *::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+main *::-webkit-scrollbar-track { background: transparent; }
+
+button { -webkit-tap-highlight-color: transparent; }

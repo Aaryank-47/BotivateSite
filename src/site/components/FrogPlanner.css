@@ -1,0 +1,257 @@
+/* =============================================
+   FROG PLANNER TEASER
+   ============================================= */
+
+.fp-wrapper {
+  position: relative;
+  min-height: calc(100vh - 74px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0b0d;
+  color: #f4f4f5;
+  overflow: hidden;
+  padding: 80px 24px;
+}
+
+/* Background grid */
+.fp-mesh-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: center;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Glow Orbs */
+.fp-glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fp-orb-1 {
+  width: 450px;
+  height: 450px;
+  background: rgba(34, 197, 94, 0.15);
+  top: 15%;
+  left: 20%;
+}
+
+.fp-orb-2 {
+  width: 400px;
+  height: 400px;
+  background: rgba(92, 104, 255, 0.12);
+  bottom: 15%;
+  right: 15%;
+}
+
+/* Container */
+.fp-container {
+  position: relative;
+  max-width: 680px;
+  width: 100%;
+  text-align: center;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ─── Logo container ─────────────────────────────── */
+.fp-logo-container {
+  position: relative;
+  margin-bottom: 20px;
+  cursor: pointer;
+  /* 3D context set via GSAP in useEffect (transformPerspective: 500) */
+  filter: drop-shadow(0 8px 20px rgba(34, 197, 94, 0.28));
+  transition: filter 0.25s ease;
+  will-change: transform;
+}
+
+.fp-logo-container:hover {
+  filter: drop-shadow(0 0 28px rgba(34, 197, 94, 0.55));
+}
+
+.fp-logo-image {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  display: block;
+  /* No CSS keyframe animation — GSAP owns the transform */
+}
+
+/* ─── Tongue ─────────────────────────────────────── */
+.fp-tongue {
+  position: absolute;
+  top: 62px;
+  left: 50%;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: top center;
+  width: 13px;
+  height: 148px;
+  background: linear-gradient(
+    180deg,
+    #aa1a44 0%,
+    #ff2060 20%,
+    #ff5e8c 58%,
+    #ff8fab 100%
+  );
+  border-radius: 6px 6px 10px 10px;
+  z-index: 5;
+  pointer-events: none;
+  box-shadow:
+    0 0 22px rgba(255, 32, 96, 0.75),
+    0 4px 14px rgba(255, 94, 140, 0.45),
+    inset 2px 0 6px rgba(255, 255, 255, 0.08);
+}
+
+/* Tongue tip */
+.fp-tongue::after {
+  content: '';
+  position: absolute;
+  bottom: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 22px;
+  background: radial-gradient(ellipse at 40% 40%, #ff6aaa, #ff2060);
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(255, 32, 96, 0.65);
+}
+
+/* ─── Title letter splitting ─────────────────────── */
+.fp-letter {
+  display: inline-block;
+  will-change: transform;
+}
+
+.fp-space {
+  /* Non-breaking space — keep its width stable */
+  display: inline-block;
+  white-space: pre;
+}
+
+/* ─── Content ────────────────────────────────────── */
+.fp-tag {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  padding: 6px 14px;
+  border-radius: 100px;
+  margin-bottom: 24px;
+  display: inline-block;
+}
+
+.fp-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 8vw, 4.2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: #ffffff;
+  margin-bottom: 16px;
+}
+
+.fp-accent {
+  color: #22c55e;
+  position: relative;
+}
+
+.fp-subtitle {
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  font-weight: 600;
+  color: #a1a1aa;
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+}
+
+.fp-desc {
+  font-family: var(--font-body);
+  font-size: clamp(0.95rem, 3vw, 1.1rem);
+  color: #71717a;
+  line-height: 1.6;
+  max-width: 600px;
+  margin-bottom: 40px;
+}
+
+/* ─── Waitlist block ─────────────────────────────── */
+.fp-waitlist {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 32px;
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.fp-waitlist-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+.fp-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.fp-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0 16px;
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  height: 48px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fp-input:focus {
+  outline: none;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
+.fp-waitlist-note {
+  display: block;
+  font-size: 11px;
+  color: #52525b;
+}
+
+/* ─── Responsive ─────────────────────────────────── */
+@media (max-width: 580px) {
+  .fp-form {
+    flex-direction: column;
+  }
+  .fp-input {
+    width: 100%;
+    flex: none;
+    height: 48px;
+  }
+  .fp-waitlist {
+    padding: 24px 16px;
+  }
+}

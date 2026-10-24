@@ -1,0 +1,409 @@
+/* ==========================================================================
+   OPERATIONAL LAYERS — STATIC CORPORATE ARCHITECTURE DIAGRAM
+   ========================================================================== */
+
+.op-section {
+  --op-border: #E5E7EB;
+  --op-surface: #F8FAFC;
+
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---------------------------------------------------------------------- */
+/* DIAGRAM CONTAINER                                                       */
+/* ---------------------------------------------------------------------- */
+
+.op-radial-container {
+  position: relative;
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto 30px;
+  aspect-ratio: 1000 / 580;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .op-radial-container {
+    display: none; /* Hide visual diagram on mobile to focus on the 5-cards layout */
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Mobile fallback — ScrollStack card stack                                */
+/* ---------------------------------------------------------------------- */
+
+.op-mobile-swap {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .op-mobile-swap {
+    display: block;
+    height: auto;
+    margin-bottom: 48px;
+  }
+}
+
+.op-mobile-swap .scroll-stack-scroller {
+  height: auto;
+  overflow: visible;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior: auto;
+}
+
+.op-mobile-swap .scroll-stack-inner {
+  padding: 1.5vh 1.1rem 12vh;
+  min-height: 0;
+}
+
+.op-mobile-swap .scroll-stack-scroller::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.op-mobile-swap .scroll-stack-card.op-swap-card {
+  background: #ffffff;
+  border: 1px solid var(--op-border);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.10), 0 3px 10px rgba(15, 23, 42, 0.05);
+  height: auto;
+  width: 100%;
+  margin: 0;
+  padding: 15px 16px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.15s ease-out, filter 0.15s ease-out, opacity 0.15s ease-out;
+}
+
+.op-swap-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.op-swap-card-eyebrow {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 3px;
+}
+
+.op-swap-card-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 6px;
+  line-height: 1.25;
+}
+
+.op-swap-card-desc {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #475569;
+  margin: 0 0 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.op-swap-card-caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.op-swap-card-cap-tag {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.op-swap-card-highlights {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.op-swap-card-highlight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.op-swap-card-highlight-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.op-diagram-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.op-svg-element {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  shape-rendering: geometricPrecision;
+  filter: drop-shadow(0 10px 24px rgba(15, 23, 42, 0.05));
+}
+
+/* ---------------------------------------------------------------------- */
+/* CENTER — shield core                                                    */
+/* ---------------------------------------------------------------------- */
+
+.op-shield-badge {
+  position: absolute;
+  left: 50%;
+  top: calc((500 / 580) * 100%);
+  transform: translate(-50%, -50%);
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow:
+    0 8px 20px rgba(15, 23, 42, 0.08),
+    0 2px 6px rgba(15, 23, 42, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.op-shield-ring {
+  position: absolute;
+  left: 50%;
+  top: calc((500 / 580) * 100%);
+  width: 122px;
+  height: 122px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 1.5px dashed rgba(148, 163, 184, 0.5);
+  z-index: 9;
+  pointer-events: none;
+}
+
+.op-shield-logo-svg {
+  color: #312e81;
+}
+
+/* "Operational layers" pill */
+.op-layers-badge {
+  position: absolute;
+  left: 50%;
+  top: calc((404 / 580) * 100%);
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  padding: 3px 10px;
+  border-radius: 20px;
+  z-index: 8;
+  pointer-events: none;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
+}
+
+.op-layers-badge span {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #4338ca;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Device & OS sides inside core                                          */
+/* ---------------------------------------------------------------------- */
+
+.op-inner-device-side,
+.op-inner-os-side {
+  position: absolute;
+  top: calc((444 / 580) * 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 84px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.op-inner-device-side {
+  left: calc((424 / 1000) * 100%);
+  transform: translate(-50%, -50%);
+}
+
+.op-inner-os-side {
+  left: calc((576 / 1000) * 100%);
+  transform: translate(-50%, -50%);
+}
+
+.op-side-title {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #111827;
+  letter-spacing: 0.05em;
+  margin-top: 5px;
+}
+
+.op-side-icons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+
+.op-device-icon {
+  font-size: 18px;
+  color: #3b82f6;
+  opacity: 0.9;
+}
+
+/* Cloud stack icons: mixed logo marks (bare glyph) + brand chips (own background),
+   sized individually so both wrap into a tidy 2x2 grid */
+.op-cloud-logo {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.op-cloud-chip {
+  width: 30px;
+  height: auto;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Outer rim labels                                                        */
+/* ---------------------------------------------------------------------- */
+
+/* Note: color is set per-label inline (matched to that sector's accent color),
+   so no fixed color is declared here. */
+.op-rim-label {
+  position: absolute;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  z-index: 4;
+  white-space: nowrap;
+}
+
+.op-rim-label--start {
+  transform: translate(10px, -50%);
+}
+
+.op-rim-label--end {
+  transform: translate(-100%, -50%) translate(-10px, 0);
+}
+
+.op-rim-label--middle {
+  transform: translate(-50%, -50%);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Sector overlay labels (inside sectors)                                  */
+/* ---------------------------------------------------------------------- */
+
+.op-sector-label-group {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 6;
+}
+
+.op-sector-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.op-sector-icon {
+  font-size: 18px;
+  color: var(--text-color, #1e293b);
+}
+
+.op-sector-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-color, #0f172a);
+  letter-spacing: 0.01em;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Capability floating nodes                                              */
+/* ---------------------------------------------------------------------- */
+
+.op-cap-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  z-index: 7;
+}
+
+.op-cap-dot {
+  width: 5px;
+  height: 5px;
+  background-color: var(--dot-color);
+  border-radius: 50%;
+  margin-top: 5.5px;
+  flex-shrink: 0;
+}
+
+.op-cap-text-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.25;
+}
+
+.op-cap-line {
+  font-size: 10.5px;
+  font-weight: 550;
+  color: var(--text-color, #475569);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
