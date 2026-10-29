@@ -26,15 +26,20 @@ export const getPriorityColor = (priority) => {
 };
 
 export const getStatusBadgeClass = (task) => {
-    if (task.status1?.includes("completed by")) return "bg-green-100 text-green-800";
-    if (task.status1?.includes("forward2")) return "bg-purple-100 text-purple-800";
-    if (task.status1?.includes("forward1")) return "bg-blue-100 text-blue-800";
-    if (task.status === "pending") return "bg-yellow-100 text-yellow-800";
+    if (task?.isRejected) return "bg-rose-100 text-rose-800 border border-rose-300 font-semibold";
+    if (task?.status1?.includes("completed by")) return "bg-green-100 text-green-800";
+    if (task?.status1?.includes("forward2")) return "bg-purple-100 text-purple-800";
+    if (task?.status1?.includes("forward1")) return "bg-blue-100 text-blue-800";
+    if (task?.status === "pending") return "bg-yellow-100 text-yellow-800";
     return "bg-gray-100 text-gray-800";
 };
 
 export const getStatusText = (task) => {
-    return task.status1 || task.status || "Not Started";
+    if (task?.isRejected) {
+        const base = task?.status1 || task?.status || "In Progress";
+        return `Rejected · ${base}`;
+    }
+    return task?.status1 || task?.status || "Not Started";
 };
 
 export const LoadingState = ({ masterSheetLoading }) => (

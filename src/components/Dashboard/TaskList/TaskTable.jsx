@@ -1,5 +1,5 @@
 import React from "react";
-import { FileText, Send } from "lucide-react";
+import { FileText, Send, AlertTriangle } from "lucide-react";
 import { formatDateToDDMMYY } from "../../../utils/dateFormatters";
 import {
   getPriorityColor,
@@ -9,6 +9,7 @@ import {
 import ExpandableText from "../shared/ExpandableText";
 import DataTable from "../shared/DataTable";
 import { TaskCard } from "./MobileCards";
+import { TaskAccessCell } from "./TaskAccessCell";
 
 const thClass =
   "px-3 py-2.5 text-xs font-semibold tracking-wider text-center text-gray-600 uppercase bg-gray-50 whitespace-nowrap border-b border-gray-200 overflow-hidden";
@@ -41,21 +42,32 @@ const COL = {
   status: { width: 110 },
 };
 
-function cellStyle(key) {
-  const w = COL[key]?.width;
+function cellStyle(key, type) {
+  let w = COL[key]?.width;
+  if (key === "linkOfSystem" && type === "completed") {
+    w = 210;
+  }
   if (!w) return undefined;
   return {
     width: w,
     minWidth: w,
-    maxWidth: key === "descriptionOfWork" || key === "notes" ? w + 80 : w,
+    maxWidth:
+      key === "descriptionOfWork" || key === "notes"
+        ? w + 80
+        : key === "linkOfSystem" && type === "completed"
+        ? 250
+        : w,
   };
 }
 
-function renderCell(column, task) {
+function renderCell(column, task, type) {
   const key = column.key;
   const value = task[key];
 
   if (key === "linkOfSystem") {
+    if (type === "completed") {
+      return <TaskAccessCell task={task} />;
+    }
     if (!value) return <span className="text-gray-400">—</span>;
     return (
       <a
@@ -93,6 +105,23 @@ function renderCell(column, task) {
 
   if (key === "descriptionOfWork" || key === "notes") {
     if (!value) return <span className="text-gray-400">—</span>;
+    if (key === "descriptionOfWork" && task.isRejected) {
+      const match = typeof value === "string" ? value.match(/^(\[[^\]]+\])\s*(.*)$/) : null;
+      if (match) {
+        return (
+          <div className="max-w-full overflow-hidden text-sm text-gray-900">
+            <span className="inline-block px-1.5 py-0.5 mb-1 text-[10px] font-semibold rounded bg-rose-100 text-rose-700 border border-rose-200">
+              {match[1]}
+            </span>
+            {match[2] ? (
+              <div>
+                <ExpandableText text={match[2]} />
+              </div>
+            ) : null}
+          </div>
+        );
+      }
+    }
     return (
       <div className="max-w-full overflow-hidden text-sm text-gray-900">
         <ExpandableText text={value} />
@@ -115,9 +144,24 @@ function renderCell(column, task) {
 
   if (key === "taskNo") {
     return (
-      <span className="font-semibold text-blue-600 whitespace-nowrap">
-        {value || "—"}
-      </span>
+      <div className="flex flex-col items-center justify-center gap-1">
+        <span className="font-semibold text-blue-600 whitespace-nowrap">
+          {value || "—"}
+        </span>
+        {task.isRejected && (
+          <span
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-rose-100 text-rose-700 border border-rose-300 shadow-2xs whitespace-nowrap"
+            title={
+              task.rejectedReason
+                ? `Rejected Reason: ${task.rejectedReason}`
+                : `Rejected from ${task.rejectType || "Testing"}`
+            }
+          >
+            <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0 text-rose-600" />
+            {task.rejectType ? `${task.rejectType} Rejected` : "Rejected"}
+          </span>
+        )}
+      </div>
     );
   }
 
@@ -174,112 +218,148 @@ export default function TaskTable({
         ]
       : []),
     ...filteredColumns.map((column) => ({
-      label: column.label,
-      width: COL[column.key]?.width,
+      label:
+        column.key === "linkOfSystem" && type === "completed"
+          ? "Link / Access"
+          : column.label,
+      width:
+        column.key === "linkOfSystem" && type === "completed"
+          ? 210
+          : COL[column.key]?.width,
     })),
     ...(!isCompanyUser ? [{ label: "Status", width: COL.status.width }] : []),
   ];
 
-  const renderRow = (task) => (
-    <tr key={task.id} className="hover:bg-gray-50/80">
-      {showSelect && (
-        <td
-          className={`${tdClass} text-center align-middle`}
-          style={cellStyle("select")}
-        >
-          <div className="flex items-center justify-center">
-            <button
-              type="button"
-              onClick={() => onUpdateRow?.(task)}
-              disabled={!isTaskSelectable(task)}
-              title={
-                isTaskSelectable(task)
-                  ? "Update task"
-                  : "Only the assigned owner can update this task"
-              }
-              className="px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Update
-            </button>
-          </div>
-        </td>
-      )}
+  const renderRow = (task) => {
+    const isRejected = task.isRejected;
+    const rowClass = isRejected
+      ? "bg-rose-50/70 hover:bg-rose-100/70 transition-colors"
+      : "hover:bg-gray-50/80 transition-colors";
 
-      {showForward && (
-        <td
-          className={`${tdClass} text-center align-middle`}
-          style={cellStyle("forward")}
-        >
-          <div className="flex items-center justify-center">
-            {typeof canForwardRow === "function" &&
-            canForwardRow(task) ? (
+    let isFirst = true;
+    const getFirstCellClass = () => {
+      if (isFirst) {
+        isFirst = false;
+        return isRejected ? " border-l-4 border-l-rose-500" : "";
+      }
+      return "";
+    };
+
+    return (
+      <tr key={task.id} className={rowClass}>
+        {showSelect && (
+          <td
+            className={`${tdClass} text-center align-middle${getFirstCellClass()}`}
+            style={cellStyle("select", type)}
+          >
+            <div className="flex items-center justify-center">
               <button
                 type="button"
-                onClick={() => onForwardRow?.(task)}
-                disabled={forwardingId === task.id}
-                className="inline-flex items-center justify-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md border border-indigo-100 transition disabled:opacity-50 whitespace-nowrap"
-                title={`Forward to ${
-                  task.assignedMember2 || "Member 2"
-                }`}
+                onClick={() => onUpdateRow?.(task)}
+                disabled={!isTaskSelectable(task)}
+                title={
+                  isTaskSelectable(task)
+                    ? "Update task"
+                    : "Only the assigned owner can update this task"
+                }
+                className="px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Send className="w-3 h-3 flex-shrink-0" />
-                {forwardingId === task.id ? "…" : "Forward"}
+                Update
               </button>
-            ) : (
-              <EmptyDash />
-            )}
-          </div>
-        </td>
-      )}
+            </div>
+          </td>
+        )}
 
-      {showAssignmentCols && (
-        <>
-          <td className={tdClass} style={cellStyle("assignedBy")}>
-            <span className="block">
-              {task.assignedBy || <EmptyDash />}
-            </span>
-          </td>
-          <td className={tdClass} style={cellStyle("member1")}>
-            <span className="block">
-              {task.assignedMember1 || <EmptyDash />}
-            </span>
-          </td>
-          <td className={tdClass} style={cellStyle("member2")}>
-            <span className="block">
-              {task.assignedMember2 || <EmptyDash />}
-            </span>
-          </td>
-          <td className={tdClass} style={cellStyle("timeRequired")}>
-            <span className="whitespace-nowrap">
-              {task.timeRequired ? (
-                formatDateToDDMMYY(task.timeRequired)
+        {showForward && (
+          <td
+            className={`${tdClass} text-center align-middle${getFirstCellClass()}`}
+            style={cellStyle("forward", type)}
+          >
+            <div className="flex items-center justify-center">
+              {typeof canForwardRow === "function" &&
+              canForwardRow(task) ? (
+                <button
+                  type="button"
+                  onClick={() => onForwardRow?.(task)}
+                  disabled={forwardingId === task.id}
+                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md border border-indigo-100 transition disabled:opacity-50 whitespace-nowrap"
+                  title={`Forward to ${
+                    task.assignedMember2 || "Member 2"
+                  }`}
+                >
+                  <Send className="w-3 h-3 flex-shrink-0" />
+                  {forwardingId === task.id ? "…" : "Forward"}
+                </button>
               ) : (
                 <EmptyDash />
               )}
-            </span>
+            </div>
           </td>
-          <td className={tdClass} style={cellStyle("remarks")}>
-            {task.remarks ? (
-              <ExpandableText text={task.remarks} />
-            ) : (
-              <EmptyDash />
-            )}
-          </td>
-        </>
-      )}
+        )}
 
-      {filteredColumns.map((column) => (
-        <td
-          key={column.key}
-          className={tdClass}
-          style={cellStyle(column.key)}
-        >
-          {renderCell(column, task)}
-        </td>
-      ))}
+        {showAssignmentCols && (
+          <>
+            <td className={`${tdClass}${getFirstCellClass()}`} style={cellStyle("assignedBy", type)}>
+              <span className="block">
+                {task.assignedBy || <EmptyDash />}
+              </span>
+            </td>
+            <td className={tdClass} style={cellStyle("member1", type)}>
+              <span className="block">
+                {task.assignedMember1 || <EmptyDash />}
+              </span>
+            </td>
+            <td className={tdClass} style={cellStyle("member2", type)}>
+              <span className="block">
+                {task.assignedMember2 || <EmptyDash />}
+              </span>
+            </td>
+            <td className={tdClass} style={cellStyle("timeRequired", type)}>
+              <span className="whitespace-nowrap">
+                {task.timeRequired ? (
+                  formatDateToDDMMYY(task.timeRequired)
+                ) : (
+                  <EmptyDash />
+                )}
+              </span>
+            </td>
+            <td className={tdClass} style={cellStyle("remarks", type)}>
+              {task.isRejected && task.rejectedReason ? (
+                <div className="flex flex-col items-center justify-center gap-1 py-0.5">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs whitespace-nowrap">
+                    <AlertTriangle className="w-3 h-3 text-rose-500 flex-shrink-0" />
+                    {task.rejectType ? `${task.rejectType} Issue` : "Testing Issue"}
+                  </span>
+                  <span className="text-xs font-semibold text-rose-950 max-w-full text-center">
+                    <ExpandableText text={task.rejectedReason} />
+                  </span>
+                  {task.remarks && task.remarks !== task.rejectedReason && (
+                    <span className="text-[11px] text-gray-500 border-t border-rose-100 pt-0.5 max-w-full text-center">
+                      <ExpandableText text={task.remarks} />
+                    </span>
+                  )}
+                </div>
+              ) : task.remarks ? (
+                <ExpandableText text={task.remarks} />
+              ) : (
+                <EmptyDash />
+              )}
+            </td>
+          </>
+        )}
+
+        {filteredColumns.map((column) => (
+          <td
+            key={column.key}
+            className={`${tdClass}${getFirstCellClass()}`}
+            style={cellStyle(column.key, type)}
+          >
+            {renderCell(column, task, type)}
+          </td>
+        ))}
 
       {!isCompanyUser && (
-        <td className={tdClass} style={cellStyle("status")}>
+        <td className={tdClass} style={cellStyle("status", type)}>
           <span
             className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${getStatusBadgeClass(
               task
@@ -291,6 +371,7 @@ export default function TaskTable({
       )}
     </tr>
   );
+};
 
   const renderCard = (task) => (
     <TaskCard
@@ -313,7 +394,7 @@ export default function TaskTable({
       data={filteredTasks}
       renderRow={renderRow}
       renderCard={renderCard}
-      minWidth="min-w-[1600px]"
+      minWidth={type === "completed" ? "min-w-[1750px]" : "min-w-[1600px]"}
       currentPage={currentPage}
       totalPages={totalPages}
       itemsPerPage={itemsPerPage}

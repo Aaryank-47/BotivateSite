@@ -195,11 +195,25 @@ const USER_TASKS_SELECT = `
 // task_subtasks with the same task columns + root_task_id. Ids are shared by both tables
 // (one sequence, see migration_task_subtasks.sql), so an id alone tells which table it is in.
 
-/** Same select for task_subtasks: its foreign keys are named task_subtasks_<col>_fkey. */
-export const subtaskSelect = (select) => select.replaceAll("user_tasks_", "task_subtasks_");
+/** Same select for task_subtasks: its foreign keys are named task_subtasks_<col>_fkey.
+ * Also ensures relation_type and issue_remarks are included if not present in select.
+ */
+export const subtaskSelect = (select) => {
+  let res = select.replaceAll("user_tasks_", "task_subtasks_");
+  if (!res.includes("relation_type")) {
+    res = `relation_type, issue_remarks, ${res}`;
+  }
+  return res;
+};
 
 /** Marks a task_subtasks row so the task screens treat it like the old rework rows. */
-export const asSubtask = (row) => ({ ...row, is_subtask: true, is_testing_issue: true });
+export const asSubtask = (row) => ({
+  ...row,
+  is_subtask: true,
+  is_testing_issue: row.relation_type === "Testing Issue" || row.is_testing_issue !== false,
+  relation_type: row.relation_type || "Testing Issue",
+  issue_remarks: row.issue_remarks || null,
+});
 
 /**
  * Runs the same query on user_tasks and task_subtasks and returns both lists merged, newest id first.
@@ -799,30 +813,44 @@ function daysBetween(fromDate, toDate) {
 }
 
 export const fetchDelegatedTasks = async () => {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("delegated_tasks")
     .select(
       `
-      id,
-      serial_number,
-      task_details,
-      assigned_to,
-      assigned_by,
-      target_date,
-      planned_date,
-      actual_date,
-      delay_duration,
-      status,
-      remarks,
-      new_target_date,
-      created_at,
-      updated_at,
+      *,
       assignee:users!delegated_tasks_assigned_to_fkey ( id, name, username ),
       assigner:users!delegated_tasks_assigned_by_fkey ( id, name, username )
     `
     )
     .order("created_at", { ascending: false });
-  if (error) throw error;
+
+  if (error) {
+    const fallback = await supabase
+      .from("delegated_tasks")
+      .select(
+        `
+        id,
+        serial_number,
+        task_details,
+        assigned_to,
+        assigned_by,
+        target_date,
+        planned_date,
+        actual_date,
+        delay_duration,
+        status,
+        remarks,
+        new_target_date,
+        created_at,
+        updated_at,
+        assignee:users!delegated_tasks_assigned_to_fkey ( id, name, username ),
+        assigner:users!delegated_tasks_assigned_by_fkey ( id, name, username )
+      `
+      )
+      .order("created_at", { ascending: false });
+    if (fallback.error) throw fallback.error;
+    data = fallback.data;
+  }
   return data || [];
 };
 
@@ -831,6 +859,7 @@ export const createDelegatedTask = async ({
   assigned_to,
   assigned_by,
   target_date,
+  target_time,
 }) => {
   if (!task_details || !String(task_details).trim()) {
     throw new Error("Task details are required.");
@@ -841,21 +870,50 @@ export const createDelegatedTask = async ({
 
   // Planned date auto = target date on assign
   const planned_date = target_date;
+  const timeVal = target_time ? String(target_time).trim() : null;
 
-  const { data, error } = await supabase
+  const base = {
+    task_details: String(task_details).trim(),
+    assigned_to: Number(assigned_to),
+    assigned_by: Number(assigned_by),
+    target_date,
+    planned_date,
+    status: "Pending",
+  };
+
+  const withTime = {
+    ...base,
+    ...(timeVal ? { target_time: timeVal } : {}),
+  };
+
+  let { data, error } = await supabase
     .from("delegated_tasks")
-    .insert([
-      {
-        task_details: String(task_details).trim(),
-        assigned_to: Number(assigned_to),
-        assigned_by: Number(assigned_by),
-        target_date,
-        planned_date,
-        status: "Pending",
-      },
-    ])
+    .insert([withTime])
     .select()
     .single();
+
+  if (
+    error &&
+    (error.message?.includes("target_time") ||
+      error.code === "PGRST204" ||
+      error.message?.includes("schema cache"))
+  ) {
+    // If Supabase column doesn't exist yet, preserve target_time in task_details
+    const fallbackPayload = {
+      ...base,
+      task_details: timeVal
+        ? `${base.task_details}\n[Target Time: ${timeVal}]`
+        : base.task_details,
+    };
+    const fallbackRes = await supabase
+      .from("delegated_tasks")
+      .insert([fallbackPayload])
+      .select()
+      .single();
+    if (fallbackRes.error) throw fallbackRes.error;
+    return fallbackRes.data;
+  }
+
   if (error) throw error;
   return data;
 };
@@ -892,23 +950,57 @@ export const completeDelegatedTask = async (id, remarks = "", plannedDate = null
 };
 
 /** Extend: new_target_date + remarks (reason); status Extended; planned can stay original */
-export const extendDelegatedTask = async (id, new_target_date, remarks) => {
+export const extendDelegatedTask = async (
+  id,
+  new_target_date,
+  remarks,
+  new_target_time = null
+) => {
   if (!id) throw new Error("Task id is required.");
   if (!new_target_date) throw new Error("New target date is required.");
   if (!remarks || !String(remarks).trim()) {
     throw new Error("Remarks / reason is required when extending.");
   }
-  const { data, error } = await supabase
+  const timeVal = new_target_time ? String(new_target_time).trim() : null;
+  const patch = {
+    status: "Extended",
+    new_target_date,
+    target_date: new_target_date,
+    remarks: String(remarks).trim(),
+    ...(timeVal ? { target_time: timeVal, new_target_time: timeVal } : {}),
+  };
+
+  let { data, error } = await supabase
     .from("delegated_tasks")
-    .update({
-      status: "Extended",
-      new_target_date,
-      target_date: new_target_date,
-      remarks: String(remarks).trim(),
-    })
+    .update(patch)
     .eq("id", id)
     .select()
     .single();
+
+  if (
+    error &&
+    (error.message?.includes("target_time") ||
+      error.code === "PGRST204" ||
+      error.message?.includes("schema cache"))
+  ) {
+    const cleanRemarks = timeVal
+      ? `${String(remarks).trim()} [New Target Time: ${timeVal}]`
+      : String(remarks).trim();
+    const fallbackRes = await supabase
+      .from("delegated_tasks")
+      .update({
+        status: "Extended",
+        new_target_date,
+        target_date: new_target_date,
+        remarks: cleanRemarks,
+      })
+      .eq("id", id)
+      .select()
+      .single();
+    if (fallbackRes.error) throw fallbackRes.error;
+    return fallbackRes.data;
+  }
+
   if (error) throw error;
   return data;
 };
@@ -916,22 +1008,65 @@ export const extendDelegatedTask = async (id, new_target_date, remarks) => {
 // ─── Checklist Tasks ─────────────────────────────────────────────────────────
 
 export const createChecklistTask = async (payload) => {
-  const { data, error } = await supabase
+  const taskDate = payload.task_date || payload.date || null;
+  const taskTime = payload.task_time || payload.time || null;
+
+  const base = {
+    assigned_by: payload.assigned_by ? Number(payload.assigned_by) : null,
+    name: payload.name,
+    task_name: payload.task_name,
+    task_category: payload.task_category,
+    task_type: payload.task_type,
+    description: payload.description || "",
+    days: payload.days || [],
+    status: "Pending",
+  };
+
+  const withDateTime = {
+    ...base,
+    ...(taskDate ? { task_date: taskDate } : {}),
+    ...(taskTime ? { task_time: taskTime } : {}),
+  };
+
+  let { data, error } = await supabase
     .from("checklist_tasks")
-    .insert([
-      {
-        assigned_by: payload.assigned_by ? Number(payload.assigned_by) : null,
-        name: payload.name,
-        task_name: payload.task_name,
-        task_category: payload.task_category,
-        task_type: payload.task_type,
-        description: payload.description || "",
-        days: payload.days || [],
-        status: "Pending",
-      },
-    ])
+    .insert([withDateTime])
     .select()
     .single();
+
+  // If Supabase reports columns don't exist yet in the schema cache,
+  // fall back to saving base fields and preserving date/time in description
+  if (
+    error &&
+    (error.message?.includes("task_date") ||
+      error.message?.includes("task_time") ||
+      error.code === "PGRST204" ||
+      error.message?.includes("schema cache"))
+  ) {
+    const dateTimeNote = [
+      taskDate ? `Date: ${taskDate}` : null,
+      taskTime ? `Time: ${taskTime}` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
+    const fallbackPayload = {
+      ...base,
+      description: base.description
+        ? `${base.description}\n[Scheduled: ${dateTimeNote}]`
+        : `[Scheduled: ${dateTimeNote}]`,
+    };
+
+    const fallbackRes = await supabase
+      .from("checklist_tasks")
+      .insert([fallbackPayload])
+      .select()
+      .single();
+
+    if (fallbackRes.error) throw fallbackRes.error;
+    return fallbackRes.data;
+  }
+
   if (error) throw error;
   return data;
 };
@@ -964,22 +1099,50 @@ export const updateChecklistTask = async (id, { status, remarks }) => {
 // ─── Weekly Calls ────────────────────────────────────────────────────────────
 
 export const createWeeklyCall = async (payload) => {
-  const { data, error } = await supabase
+  const callingTime = payload.calling_time || payload.time || null;
+  const base = {
+    party_name: payload.party_name,
+    responsible_person: payload.responsible_person,
+    responsible_phone: payload.responsible_phone,
+    calling_person_name: payload.calling_person_name,
+    task_description: payload.task_description || "",
+    calling_days: payload.calling_days || [],
+    assigned_by: payload.assigned_by ? Number(payload.assigned_by) : null,
+    status: "Pending",
+  };
+
+  const withTime = {
+    ...base,
+    ...(callingTime ? { calling_time: callingTime } : {}),
+  };
+
+  let { data, error } = await supabase
     .from("weekly_calls")
-    .insert([
-      {
-        party_name: payload.party_name,
-        responsible_person: payload.responsible_person,
-        responsible_phone: payload.responsible_phone,
-        calling_person_name: payload.calling_person_name,
-        task_description: payload.task_description || "",
-        calling_days: payload.calling_days || [],
-        assigned_by: payload.assigned_by ? Number(payload.assigned_by) : null,
-        status: "Pending",
-      },
-    ])
+    .insert([withTime])
     .select()
     .single();
+
+  if (
+    error &&
+    (error.message?.includes("calling_time") ||
+      error.code === "PGRST204" ||
+      error.message?.includes("schema cache"))
+  ) {
+    const fallbackPayload = {
+      ...base,
+      task_description: callingTime
+        ? `${base.task_description ? base.task_description + "\n" : ""}[Calling Time: ${callingTime}]`
+        : base.task_description,
+    };
+    const fallbackRes = await supabase
+      .from("weekly_calls")
+      .insert([fallbackPayload])
+      .select()
+      .single();
+    if (fallbackRes.error) throw fallbackRes.error;
+    return fallbackRes.data;
+  }
+
   if (error) throw error;
   return data;
 };

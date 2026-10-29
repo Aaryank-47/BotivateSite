@@ -6,7 +6,7 @@ export const PAGE_SIZE = 50;
 const TASK_SELECT = `
       *,
       company:users!user_tasks_company_id_fkey ( id, name, company_name ),
-      systems ( id, name ),
+      systems ( id, name, website_link, system_username, system_password ),
       posted_by_user:users!user_tasks_posted_by_fkey ( id, name, username ),
       taken_from_user:users!user_tasks_taken_from_fkey ( id, name, username ),
       assigned_member:users!user_tasks_assigned_member_1_fkey ( id, name, username ),
@@ -51,6 +51,40 @@ export const fetchTasksByType = async (type, page, pageSize = PAGE_SIZE) => {
     const rows = [...(main.data || []), ...(subs.data || []).map(asSubtask)]
         .sort((a, b) => b.id - a.id)
         .slice(from, to + 1);
+
+    if (type === "completed") {
+        try {
+            const { data: testRows } = await supabase
+                .from("task_testing")
+                .select("id, task_id, subtask_id, system_link, github_link, system_login_id, system_password")
+                .order("id", { ascending: false });
+
+            if (Array.isArray(testRows) && testRows.length > 0) {
+                const testingMap = {};
+                for (const r of testRows) {
+                    if (r.task_id && !testingMap[`task_${r.task_id}`]) {
+                        testingMap[`task_${r.task_id}`] = r;
+                    }
+                    if (r.subtask_id && !testingMap[`sub_${r.subtask_id}`]) {
+                        testingMap[`sub_${r.subtask_id}`] = r;
+                    }
+                }
+
+                rows.forEach((r) => {
+                    const t = testingMap[r.is_subtask ? `sub_${r.id}` : `task_${r.id}`] || testingMap[`task_${r.id}`];
+                    if (t) {
+                        if (!r.github_link && t.github_link) r.github_link = t.github_link;
+                        if (!r.link_of_system && t.system_link) r.link_of_system = t.system_link;
+                        if (!r.system_login_id && t.system_login_id) r.system_login_id = t.system_login_id;
+                        if (!r.system_password && t.system_password) r.system_password = t.system_password;
+                    }
+                });
+            }
+        } catch {
+            /* ignore if task_testing query fails */
+        }
+    }
+
     return { rows, count: (main.count || 0) + (subs.count || 0) };
 };
 

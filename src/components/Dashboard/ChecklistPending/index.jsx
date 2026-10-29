@@ -12,6 +12,8 @@ import {
   ListChecks,
   UserPlus,
   Phone,
+  Calendar,
+  Clock,
   AlertTriangle,
   Paperclip,
   Upload,
@@ -36,6 +38,54 @@ function formatDate(value) {
   } catch {
     return "—";
   }
+}
+
+function getTaskDateTime(r) {
+  let date = r?.task_date || r?.date || null;
+  let time = r?.task_time || r?.time || null;
+
+  if ((!date || !time) && r?.description) {
+    const match = r.description.match(
+      /\[Scheduled:\s*(?:Date:\s*([^\s|]+))?(?:\s*\|\s*)?(?:Time:\s*([^\s\]]+))?\]/i
+    );
+    if (match) {
+      if (!date && match[1]) date = match[1];
+      if (!time && match[2]) time = match[2];
+    }
+  }
+
+  return { date, time };
+}
+
+function getWeeklyCallTime(r) {
+  let time = r?.calling_time || r?.time || null;
+  if (!time && r?.task_description) {
+    const match = r.task_description.match(/\[Calling Time:\s*([^\s\]]+)\]/i);
+    if (match && match[1]) time = match[1];
+  }
+  return time;
+}
+
+function formatTaskTime(timeStr) {
+  if (!timeStr) return "";
+  try {
+    const parts = String(timeStr).split(":");
+    if (parts.length >= 2) {
+      const hour = parseInt(parts[0], 10);
+      const m = parts[1];
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const formattedHour = hour % 12 || 12;
+      return `${formattedHour}:${m.padStart(2, "0")} ${ampm}`;
+    }
+    return timeStr;
+  } catch {
+    return timeStr;
+  }
+}
+
+function cleanDescription(desc) {
+  if (!desc) return "";
+  return desc.replace(/\n?\[Scheduled:.*?\]/g, "").trim();
 }
 
 function statusStyle(status) {
@@ -125,6 +175,11 @@ function ChecklistUpdateModal({ task, onClose, onDone }) {
               {task.task_name || "Task"}
             </span>
             {task.name ? ` · ${task.name}` : ""}
+            {getTaskDateTime(task).time && (
+              <span className="block mt-0.5 text-xs text-slate-500">
+                Scheduled at {formatTaskTime(getTaskDateTime(task).time)}
+              </span>
+            )}
           </p>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -547,16 +602,147 @@ function StatusSubTabs({ tab, setTab, pendingCount, completedCount }) {
   );
 }
 
+const DAY_INDEX = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+function getChecklistDelay(task) {
+  if (!task) return null;
+  const isDone = String(task.status || "").toLowerCase() === "completed";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (task.task_date) {
+    try {
+      const scheduled = new Date(task.task_date);
+      scheduled.setHours(0, 0, 0, 0);
+      if (isDone) {
+        const doneDate = task.updated_at ? new Date(task.updated_at) : today;
+        doneDate.setHours(0, 0, 0, 0);
+        const diff = Math.round((doneDate - scheduled) / (1000 * 60 * 60 * 24));
+        return diff > 0 ? diff : 0;
+      }
+      const diff = Math.round((today - scheduled) / (1000 * 60 * 60 * 24));
+      return diff > 0 ? diff : 0;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (Array.isArray(task.days) && task.days.length > 0) {
+    try {
+      const currentDayIdx = today.getDay();
+      const targetIndices = task.days
+        .map((d) => DAY_INDEX[String(d).toLowerCase()])
+        .filter((i) => i != null);
+
+      if (targetIndices.length > 0) {
+        let minDaysPassed = null;
+        targetIndices.forEach((targetIdx) => {
+          let daysPassed = currentDayIdx - targetIdx;
+          if (daysPassed < 0) daysPassed += 7;
+          if (minDaysPassed == null || daysPassed < minDaysPassed) {
+            minDaysPassed = daysPassed;
+          }
+        });
+        if (isDone) return 0;
+        return minDaysPassed != null && minDaysPassed > 0 ? minDaysPassed : 0;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (!isDone && task.created_at) {
+    try {
+      const created = new Date(task.created_at);
+      created.setHours(0, 0, 0, 0);
+      const diff = Math.round((today - created) / (1000 * 60 * 60 * 24));
+      return diff > 0 ? diff : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  return 0;
+}
+
+function getWeeklyCallDelay(task) {
+  if (!task) return null;
+  const isDone = String(task.status || "").toLowerCase() === "completed";
+  if (isDone) return 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (Array.isArray(task.calling_days) && task.calling_days.length > 0) {
+    try {
+      const currentDayIdx = today.getDay();
+      const targetIndices = task.calling_days
+        .map((d) => DAY_INDEX[String(d).toLowerCase()])
+        .filter((i) => i != null);
+
+      if (targetIndices.length > 0) {
+        let minDaysPassed = null;
+        targetIndices.forEach((targetIdx) => {
+          let daysPassed = currentDayIdx - targetIdx;
+          if (daysPassed < 0) daysPassed += 7;
+          if (minDaysPassed == null || daysPassed < minDaysPassed) {
+            minDaysPassed = daysPassed;
+          }
+        });
+        return minDaysPassed != null && minDaysPassed > 0 ? minDaysPassed : 0;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (task.created_at) {
+    try {
+      const created = new Date(task.created_at);
+      created.setHours(0, 0, 0, 0);
+      const diff = Math.round((today - created) / (1000 * 60 * 60 * 24));
+      return diff > 0 ? diff : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  return 0;
+}
+
 /* ── Checklist table panel ──────────────────────────────────────────────── */
-const CHECKLIST_HEADERS = [
+const CHECKLIST_PENDING_HEADERS = [
   "Action",
   "Task",
   "Doer",
   "Category",
   "Type",
+  "Time",
   "Days",
   "Status",
   "Created",
+  "Delay",
+];
+
+const CHECKLIST_COMPLETED_HEADERS = [
+  "Action",
+  "Task",
+  "Doer",
+  "Category",
+  "Type",
+  "Time",
+  "Days",
+  "Status",
+  "Created",
+  "Actual",
+  "Delay",
 ];
 
 function useChecklistPanel({ userRole, user, userFilterData }) {
@@ -627,115 +813,179 @@ function useChecklistPanel({ userRole, user, userFilterData }) {
     [filtered, currentPage, itemsPerPage]
   );
 
-  const renderRow = (r) => (
-    <tr
-      key={r.id}
-      className="hover:bg-slate-50/60 transition"
-    >
-      <td className="px-4 py-3 text-center align-middle">
-        <button
-          type="button"
-          onClick={() => setUpdateItem(r)}
-          className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-        >
-          Update
-        </button>
-      </td>
-      <td className="px-4 py-3 text-center align-middle">
-        <div className="font-medium text-slate-800">
-          {r.task_name || "—"}
-        </div>
-        {r.description && (
-          <div className="mt-0.5 line-clamp-1 text-xs text-slate-400">
-            {r.description}
-          </div>
-        )}
-      </td>
-      <td className="px-4 py-3 text-center text-slate-700 align-middle">{r.name || "—"}</td>
-      <td className="px-4 py-3 text-center capitalize text-slate-600 align-middle">
-        {r.task_category || "—"}
-      </td>
-      <td className="px-4 py-3 text-center text-slate-600 align-middle">
-        {r.task_type || "—"}
-      </td>
-      <td className="px-4 py-3 text-center align-middle">
-        <div className="flex flex-wrap justify-center gap-1">
-          {(r.days || []).map((d) => (
-            <span
-              key={d}
-              className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
-            >
-              {String(d).slice(0, 3)}
-            </span>
-          ))}
-        </div>
-      </td>
-      <td className="px-4 py-3 text-center align-middle">
-        <span
-          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyle(
-            r.status
-          )}`}
-        >
-          {r.status || "Pending"}
-        </span>
-      </td>
-      <td className="px-4 py-3 text-center text-slate-500 align-middle">
-        {formatDate(r.created_at)}
-      </td>
-    </tr>
-  );
-
-  const renderCard = (r) => (
-    <div key={r.id} className="p-4 sm:p-5 flex flex-col gap-4 transition-all duration-300 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden bg-white hover:shadow-md">
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 opacity-80"></div>
-
-      <div className="flex justify-between items-start mt-1">
-        <div>
-          <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 text-lg tracking-tight">
-            {r.task_name || "—"}
-          </span>
-          <p className="text-xs font-medium text-gray-500 mt-0.5">{r.task_type || "—"} · {r.task_category || "—"}</p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${statusStyle(r.status)}`}>
-            {r.status || "Pending"}
-          </span>
+  const renderRow = (r) => {
+    const dt = getTaskDateTime(r);
+    const cleanDesc = cleanDescription(r.description);
+    const delay = getChecklistDelay(r);
+    return (
+      <tr
+        key={r.id}
+        className="hover:bg-slate-50/60 transition"
+      >
+        <td className="px-4 py-3 text-center align-middle">
           <button
             type="button"
             onClick={() => setUpdateItem(r)}
-            className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+            className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
           >
             Update
           </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm bg-gray-50/50 p-4 rounded-xl border border-gray-100/50">
-        <div className="col-span-2">
-          <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Description</span>
-          <span className="font-semibold text-gray-900">{r.description || "—"}</span>
-        </div>
-        <div>
-          <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Doer</span>
-          <span className="font-semibold text-gray-900">{r.name || "—"}</span>
-        </div>
-        <div>
-          <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Created</span>
-          <span className="font-semibold text-gray-900">{formatDate(r.created_at)}</span>
-        </div>
-        <div className="col-span-2">
-          <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Days</span>
-          <div className="flex flex-wrap gap-1">
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          <div className="font-medium text-slate-800">
+            {r.task_name || "—"}
+          </div>
+          {cleanDesc && (
+            <div className="mt-0.5 line-clamp-1 text-xs text-slate-400">
+              {cleanDesc}
+            </div>
+          )}
+        </td>
+        <td className="px-4 py-3 text-center text-slate-700 align-middle">{r.name || "—"}</td>
+        <td className="px-4 py-3 text-center capitalize text-slate-600 align-middle">
+          {r.task_category || "—"}
+        </td>
+        <td className="px-4 py-3 text-center text-slate-600 align-middle">
+          {r.task_type || "—"}
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          {dt.time ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+              <Clock className="h-3 w-3 text-emerald-500" />
+              {formatTaskTime(dt.time)}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">—</span>
+          )}
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          <div className="flex flex-wrap justify-center gap-1">
             {(r.days || []).map((d) => (
-              <span key={d} className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+              <span
+                key={d}
+                className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
+              >
                 {String(d).slice(0, 3)}
               </span>
             ))}
           </div>
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          <span
+            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyle(
+              r.status
+            )}`}
+          >
+            {r.status || "Pending"}
+          </span>
+        </td>
+        <td className="px-4 py-3 text-center text-slate-500 align-middle">
+          {formatDate(r.created_at)}
+        </td>
+        {statusTab === "completed" && (
+          <td className="whitespace-nowrap px-4 py-3 text-center text-slate-500 align-middle">
+            {formatDate(r.actual_date || r.updated_at || r.created_at)}
+          </td>
+        )}
+        <td className="whitespace-nowrap px-4 py-3 text-center align-middle">
+          {delay == null ? (
+            <span className="text-slate-400">—</span>
+          ) : (
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                delay > 0
+                  ? "bg-red-50 text-red-700 ring-1 ring-red-200"
+                  : "bg-slate-100 text-slate-700"
+              }`}
+            >
+              {delay > 0 ? `+${delay}d` : "0d"}
+            </span>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  const renderCard = (r) => {
+    const dt = getTaskDateTime(r);
+    const cleanDesc = cleanDescription(r.description);
+    const delay = getChecklistDelay(r);
+    return (
+      <div key={r.id} className="p-4 sm:p-5 flex flex-col gap-4 transition-all duration-300 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden bg-white hover:shadow-md">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 opacity-80"></div>
+
+        <div className="flex justify-between items-start mt-1">
+          <div>
+            <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 text-lg tracking-tight">
+              {r.task_name || "—"}
+            </span>
+            <p className="text-xs font-medium text-gray-500 mt-0.5">{r.task_type || "—"} · {r.task_category || "—"}</p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${statusStyle(r.status)}`}>
+              {r.status || "Pending"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setUpdateItem(r)}
+              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95"
+            >
+              Update
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm bg-gray-50/50 p-4 rounded-xl border border-gray-100/50">
+          <div className="col-span-2">
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Description</span>
+            <span className="font-semibold text-gray-900">{cleanDesc || "—"}</span>
+          </div>
+          <div>
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Doer</span>
+            <span className="font-semibold text-gray-900">{r.name || "—"}</span>
+          </div>
+          <div>
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Time</span>
+            <span className="font-semibold text-gray-900">
+              {dt.time ? formatTaskTime(dt.time) : "—"}
+            </span>
+          </div>
+          <div>
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Created</span>
+            <span className="font-semibold text-gray-900">{formatDate(r.created_at)}</span>
+          </div>
+          {statusTab === "completed" && (
+            <div>
+              <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Actual</span>
+              <span className="font-semibold text-gray-900">{formatDate(r.actual_date || r.updated_at || r.created_at)}</span>
+            </div>
+          )}
+          <div>
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Delay</span>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                delay > 0
+                  ? "bg-red-50 text-red-700 ring-1 ring-red-200"
+                  : "bg-slate-100 text-slate-700"
+              }`}
+            >
+              {delay > 0 ? `+${delay}d` : "0d"}
+            </span>
+          </div>
+          <div className="col-span-2">
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Days</span>
+            <div className="flex flex-wrap gap-1">
+              {(r.days || []).map((d) => (
+                <span key={d} className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                  {String(d).slice(0, 3)}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const header = (
     <>
@@ -773,11 +1023,11 @@ function useChecklistPanel({ userRole, user, userFilterData }) {
           <div className="px-4 py-12 text-center text-slate-400">Loading…</div>
         ) : (
           <DataTable
-            headers={CHECKLIST_HEADERS}
+            headers={statusTab === "completed" ? CHECKLIST_COMPLETED_HEADERS : CHECKLIST_PENDING_HEADERS}
             data={paginated}
             renderRow={renderRow}
             renderCard={renderCard}
-            minWidth="min-w-[720px]"
+            minWidth={statusTab === "completed" ? "min-w-[800px]" : "min-w-[720px]"}
             currentPage={currentPage}
             totalPages={totalPages}
             itemsPerPage={itemsPerPage}
@@ -802,15 +1052,31 @@ function useChecklistPanel({ userRole, user, userFilterData }) {
 }
 
 /* ── Weekly calls table panel ───────────────────────────────────────────── */
-const WEEKLY_HEADERS = [
+const WEEKLY_PENDING_HEADERS = [
   "Action",
   "Party",
   "Responsible",
-  "Phone",
+  "Client Number",
   "Caller",
   "Days",
+  "Time",
   "Status",
   "Created",
+  "Delay",
+];
+
+const WEEKLY_COMPLETED_HEADERS = [
+  "Action",
+  "Party",
+  "Responsible",
+  "Client Number",
+  "Caller",
+  "Days",
+  "Time",
+  "Status",
+  "Created",
+  "Actual",
+  "Delay",
 ];
 
 function useWeeklyPanel({
@@ -887,121 +1153,187 @@ function useWeeklyPanel({
     [filtered, currentPage, itemsPerPage]
   );
 
-  const renderRow = (r) => (
-    <tr
-      key={r.id}
-      className="hover:bg-slate-50/60 transition"
-    >
-      <td className="px-4 py-3 text-center align-middle">
-        <button
-          type="button"
-          onClick={() => setUpdateItem(r)}
-          className="rounded-lg bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100"
-        >
-          Update
-        </button>
-      </td>
-      <td className="px-4 py-3 text-center align-middle">
-        <div className="font-medium text-slate-800">
-          {r.party_name || "—"}
-        </div>
-        {r.task_description && (
-          <div className="mt-0.5 line-clamp-1 text-xs text-slate-400">
-            {r.task_description}
-          </div>
-        )}
-      </td>
-      <td className="px-4 py-3 text-center text-slate-700 align-middle">
-        {r.responsible_person || "—"}
-      </td>
-      <td className="px-4 py-3 text-center text-slate-600 align-middle">
-        {r.responsible_phone || "—"}
-      </td>
-      <td className="px-4 py-3 text-center text-slate-700 align-middle">
-        {r.calling_person_name || "—"}
-      </td>
-      <td className="px-4 py-3 text-center align-middle">
-        <div className="flex flex-wrap justify-center gap-1">
-          {(r.calling_days || []).map((d) => (
-            <span
-              key={d}
-              className="rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700"
-            >
-              {String(d).slice(0, 3)}
-            </span>
-          ))}
-        </div>
-      </td>
-      <td className="px-4 py-3 text-center align-middle">
-        <span
-          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyle(
-            r.status
-          )}`}
-        >
-          {r.status || "Pending"}
-        </span>
-      </td>
-      <td className="px-4 py-3 text-center text-slate-500 align-middle">
-        {formatDate(r.created_at)}
-      </td>
-    </tr>
-  );
-
-  const renderCard = (r) => (
-    <div key={r.id} className="p-4 sm:p-5 flex flex-col gap-4 transition-all duration-300 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden bg-white hover:shadow-md">
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 opacity-80"></div>
-
-      <div className="flex justify-between items-start mt-1">
-        <div>
-          <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 text-lg tracking-tight">
-            {r.party_name || "—"}
-          </span>
-          <p className="text-xs font-medium text-gray-500 mt-0.5">{r.calling_person_name || "—"}</p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${statusStyle(r.status)}`}>
-            {r.status || "Pending"}
-          </span>
+  const renderRow = (r) => {
+    const delay = getWeeklyCallDelay(r);
+    return (
+      <tr
+        key={r.id}
+        className="hover:bg-slate-50/60 transition"
+      >
+        <td className="px-4 py-3 text-center align-middle">
           <button
             type="button"
             onClick={() => setUpdateItem(r)}
-            className="rounded-lg bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100"
+            className="inline-flex items-center justify-center rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700 active:scale-95 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
           >
             Update
           </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm bg-gray-50/50 p-4 rounded-xl border border-gray-100/50">
-        <div className="col-span-2">
-          <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Description</span>
-          <span className="font-semibold text-gray-900">{r.task_description || "—"}</span>
-        </div>
-        <div>
-          <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Responsible</span>
-          <span className="font-semibold text-gray-900">{r.responsible_person || "—"}</span>
-        </div>
-        <div>
-          <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Phone</span>
-          <span className="font-semibold text-gray-900">{r.responsible_phone || "—"}</span>
-        </div>
-        <div>
-          <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Created</span>
-          <span className="font-semibold text-gray-900">{formatDate(r.created_at)}</span>
-        </div>
-        <div className="col-span-2">
-          <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Days</span>
-          <div className="flex flex-wrap gap-1">
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          <div className="font-medium text-slate-800">
+            {r.party_name || "—"}
+          </div>
+          {r.task_description && (
+            <div className="mt-0.5 line-clamp-1 text-xs text-slate-400">
+              {r.task_description}
+            </div>
+          )}
+        </td>
+        <td className="px-4 py-3 text-center text-slate-700 align-middle">
+          {r.responsible_person || "—"}
+        </td>
+        <td className="px-4 py-3 text-center text-slate-600 align-middle">
+          {r.responsible_phone || "—"}
+        </td>
+        <td className="px-4 py-3 text-center text-slate-700 align-middle">
+          {r.calling_person_name || "—"}
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          <div className="flex flex-wrap justify-center gap-1">
             {(r.calling_days || []).map((d) => (
-              <span key={d} className="rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
+              <span
+                key={d}
+                className="rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700"
+              >
                 {String(d).slice(0, 3)}
               </span>
             ))}
           </div>
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          {(() => {
+            const t = getWeeklyCallTime(r);
+            return t ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                <Clock className="h-3 w-3 text-violet-500" />
+                {formatTaskTime(t)}
+              </span>
+            ) : (
+              "—"
+            );
+          })()}
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          <span
+            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyle(
+              r.status
+            )}`}
+          >
+            {r.status || "Pending"}
+          </span>
+        </td>
+        <td className="px-4 py-3 text-center text-slate-500 align-middle">
+          {formatDate(r.created_at)}
+        </td>
+        {statusTab === "completed" && (
+          <td className="whitespace-nowrap px-4 py-3 text-center text-slate-500 align-middle">
+            {formatDate(r.actual_date || r.updated_at || r.created_at)}
+          </td>
+        )}
+        <td className="whitespace-nowrap px-4 py-3 text-center align-middle">
+          {delay == null ? (
+            <span className="text-slate-400">—</span>
+          ) : (
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                delay > 0
+                  ? "bg-red-50 text-red-700 ring-1 ring-red-200"
+                  : "bg-slate-100 text-slate-700"
+              }`}
+            >
+              {delay > 0 ? `+${delay}d` : "0d"}
+            </span>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  const renderCard = (r) => {
+    const delay = getWeeklyCallDelay(r);
+    return (
+      <div key={r.id} className="p-4 sm:p-5 flex flex-col gap-4 transition-all duration-300 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden bg-white hover:shadow-md">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 opacity-80"></div>
+
+        <div className="flex justify-between items-start mt-1">
+          <div>
+            <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 text-lg tracking-tight">
+              {r.party_name || "—"}
+            </span>
+            <p className="text-xs font-medium text-gray-500 mt-0.5">{r.calling_person_name || "—"}</p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${statusStyle(r.status)}`}>
+              {r.status || "Pending"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setUpdateItem(r)}
+              className="inline-flex items-center justify-center rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-violet-700 active:scale-95"
+            >
+              Update
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm bg-gray-50/50 p-4 rounded-xl border border-gray-100/50">
+          <div className="col-span-2">
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Description</span>
+            <span className="font-semibold text-gray-900">{r.task_description || "—"}</span>
+          </div>
+          <div>
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Responsible</span>
+            <span className="font-semibold text-gray-900">{r.responsible_person || "—"}</span>
+          </div>
+          <div>
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Client Number</span>
+            <span className="font-semibold text-gray-900">{r.responsible_phone || "—"}</span>
+          </div>
+          <div>
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Time</span>
+            <span className="font-semibold text-gray-900">
+              {(() => {
+                const t = getWeeklyCallTime(r);
+                return t ? formatTaskTime(t) : "—";
+              })()}
+            </span>
+          </div>
+          <div>
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Created</span>
+            <span className="font-semibold text-gray-900">{formatDate(r.created_at)}</span>
+          </div>
+          {statusTab === "completed" && (
+            <div>
+              <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Actual</span>
+              <span className="font-semibold text-gray-900">{formatDate(r.actual_date || r.updated_at || r.created_at)}</span>
+            </div>
+          )}
+          <div>
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Delay</span>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                delay > 0
+                  ? "bg-red-50 text-red-700 ring-1 ring-red-200"
+                  : "bg-slate-100 text-slate-700"
+              }`}
+            >
+              {delay > 0 ? `+${delay}d` : "0d"}
+            </span>
+          </div>
+          <div className="col-span-2">
+            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Days</span>
+            <div className="flex flex-wrap gap-1">
+              {(r.calling_days || []).map((d) => (
+                <span key={d} className="rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
+                  {String(d).slice(0, 3)}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const header = (
     <>
@@ -1039,11 +1371,11 @@ function useWeeklyPanel({
           <div className="px-4 py-12 text-center text-slate-400">Loading…</div>
         ) : (
           <DataTable
-            headers={WEEKLY_HEADERS}
+            headers={statusTab === "completed" ? WEEKLY_COMPLETED_HEADERS : WEEKLY_PENDING_HEADERS}
             data={paginated}
             renderRow={renderRow}
             renderCard={renderCard}
-            minWidth="min-w-[800px]"
+            minWidth={statusTab === "completed" ? "min-w-[880px]" : "min-w-[800px]"}
             currentPage={currentPage}
             totalPages={totalPages}
             itemsPerPage={itemsPerPage}

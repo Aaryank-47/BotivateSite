@@ -7,6 +7,7 @@ import {
   Search,
   RefreshCw,
   Calendar,
+  Clock,
   CheckCircle2,
   X,
   ChevronDown,
@@ -19,7 +20,22 @@ import {
 } from "../../../services/schemaApi";
 import DataTable from "../shared/DataTable";
 
-const HEADERS = [
+const PENDING_HEADERS = [
+  "Action",
+  "S.No",
+  "Timestamp",
+  "Assigned By",
+  "Person",
+  "Task Details",
+  "Target",
+  "Planned",
+  "Status",
+  "Remarks",
+  "New Target",
+  "Delay",
+];
+
+const COMPLETED_HEADERS = [
   "Action",
   "S.No",
   "Timestamp",
@@ -29,11 +45,42 @@ const HEADERS = [
   "Target",
   "Planned",
   "Actual",
-  "Delay",
   "Status",
   "Remarks",
   "New Target",
+  "Delay",
 ];
+
+function getDelegationDelay(task) {
+  if (task?.delay_duration != null) return task.delay_duration;
+  const isDone = String(task?.status || "").toLowerCase() === "completed";
+  if (isDone) {
+    if (task?.actual_date && (task?.planned_date || task?.target_date)) {
+      try {
+        const a = new Date(task.actual_date);
+        const p = new Date(task.planned_date || task.target_date);
+        a.setHours(0, 0, 0, 0);
+        p.setHours(0, 0, 0, 0);
+        return Math.round((a - p) / (1000 * 60 * 60 * 24));
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+  const dueStr = task?.planned_date || task?.target_date;
+  if (!dueStr) return null;
+  try {
+    const due = new Date(dueStr);
+    const today = new Date();
+    due.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.round((today - due) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  } catch {
+    return null;
+  }
+}
 
 function resolveCurrentUserId(user, userFilterData) {
   const fromProps =
@@ -75,6 +122,37 @@ function formatDate(value) {
   }
 }
 
+function getDelegatedTaskTime(task) {
+  let time = task?.target_time || task?.time || null;
+  if (!time && task?.task_details) {
+    const match = task.task_details.match(/\[Target Time:\s*([^\s\]]+)\]/i);
+    if (match && match[1]) time = match[1];
+  }
+  return time;
+}
+
+function cleanTaskDetails(details) {
+  if (!details) return "";
+  return details.replace(/\n?\[Target Time:.*?\]/g, "").trim();
+}
+
+function formatTaskTime(timeStr) {
+  if (!timeStr) return "";
+  try {
+    const parts = String(timeStr).split(":");
+    if (parts.length >= 2) {
+      const hour = parseInt(parts[0], 10);
+      const m = parts[1];
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const formattedHour = hour % 12 || 12;
+      return `${formattedHour}:${m.padStart(2, "0")} ${ampm}`;
+    }
+    return timeStr;
+  } catch {
+    return timeStr;
+  }
+}
+
 function statusStyle(status) {
   const s = String(status || "").toLowerCase();
   if (s === "completed")
@@ -91,6 +169,9 @@ function UpdateModal({ task, onClose, onDone }) {
     String(task?.status || "").toLowerCase() === "completed";
   const [action, setAction] = useState("complete");
   const [extendDate, setExtendDate] = useState("");
+  const [extendTime, setExtendTime] = useState(
+    task?.new_target_time || getDelegatedTaskTime(task) || ""
+  );
   const [extendReason, setExtendReason] = useState("");
   const [remarks, setRemarks] = useState(task?.remarks || "");
   const [errors, setErrors] = useState({});
@@ -120,7 +201,7 @@ function UpdateModal({ task, onClose, onDone }) {
       if (action === "complete") {
         await completeDelegatedTask(task.id, remarks, task.planned_date);
       } else {
-        await extendDelegatedTask(task.id, extendDate, extendReason);
+        await extendDelegatedTask(task.id, extendDate, extendReason, extendTime);
       }
       onDone();
       onClose();
@@ -201,11 +282,17 @@ function UpdateModal({ task, onClose, onDone }) {
               </div>
               <div>
                 <p className="text-[10px] font-medium uppercase text-slate-400">
-                  Due date
+                  Due date & time
                 </p>
-                <p className="mt-0.5 font-medium text-slate-700">
-                  {formatDate(task.target_date)}
-                </p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-1.5 font-medium text-slate-700">
+                  <span>{formatDate(task.target_date)}</span>
+                  {getDelegatedTaskTime(task) && (
+                    <span className="inline-flex items-center gap-1 rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700">
+                      <Clock className="h-2.5 w-2.5 text-indigo-500" />
+                      {formatTaskTime(getDelegatedTaskTime(task))}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -232,26 +319,41 @@ function UpdateModal({ task, onClose, onDone }) {
 
           {action === "extend" ? (
             <>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                  New Target Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={extendDate}
-                  onChange={(e) => {
-                    setExtendDate(e.target.value);
-                    setErrors((p) => ({ ...p, extendDate: undefined }));
-                  }}
-                  className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 ${
-                    errors.extendDate
-                      ? "border-red-300"
-                      : "border-slate-200 focus:border-indigo-300"
-                  }`}
-                />
-                {errors.extendDate && (
-                  <p className="mt-1 text-xs text-red-500">{errors.extendDate}</p>
-                )}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                    New Target Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={extendDate}
+                    onChange={(e) => {
+                      setExtendDate(e.target.value);
+                      setErrors((p) => ({ ...p, extendDate: undefined }));
+                    }}
+                    className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 ${
+                      errors.extendDate
+                        ? "border-red-300"
+                        : "border-slate-200 focus:border-indigo-300"
+                    }`}
+                  />
+                  {errors.extendDate && (
+                    <p className="mt-1 text-xs text-red-500">{errors.extendDate}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                    New Target Time
+                  </label>
+                  <input
+                    type="time"
+                    value={extendTime}
+                    onChange={(e) => {
+                      setExtendTime(e.target.value);
+                    }}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-500/30"
+                  />
+                </div>
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -450,15 +552,15 @@ export function useDelegationTasks({
   );
 
   const renderRow = (task) => {
-    const isDone = String(task.status || "").toLowerCase() === "completed";
-    const delay = task.delay_duration;
+    const isCompletedTab = tab === "completed";
+    const delay = getDelegationDelay(task);
     return (
       <tr key={task.id} className="transition hover:bg-slate-50/60">
         <td className="px-3 py-3 text-center align-middle">
           <button
             type="button"
             onClick={() => setSelectedTask(task)}
-            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
           >
             Update
           </button>
@@ -482,43 +584,32 @@ export function useDelegationTasks({
         <td className="max-w-[200px] px-3 py-3 text-center align-middle">
           <p
             className="truncate text-sm font-medium text-slate-800"
-            title={task.task_details}
+            title={cleanTaskDetails(task.task_details)}
           >
-            {task.task_details}
+            {cleanTaskDetails(task.task_details)}
           </p>
         </td>
         <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-600 text-center align-middle">
-          {formatDate(task.target_date)}
+          <div>{formatDate(task.target_date)}</div>
+          {getDelegatedTaskTime(task) && (
+            <div className="mt-0.5 flex items-center justify-center">
+              <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
+                <Clock className="h-2.5 w-2.5 text-indigo-500" />
+                {formatTaskTime(getDelegatedTaskTime(task))}
+              </span>
+            </div>
+          )}
         </td>
         <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-600 text-center align-middle">
           {formatDate(task.planned_date)}
         </td>
-        <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-600 text-center align-middle">
-          {task.actual_date
-            ? formatDate(task.actual_date)
-            : "—"}
-        </td>
-        <td className="whitespace-nowrap px-3 py-3 text-sm text-center align-middle">
-          {delay == null ? (
-            <span className="text-slate-400">—</span>
-          ) : (
-            <span
-              className={
-                delay > 0
-                  ? "font-medium text-red-600"
-                  : delay < 0
-                    ? "font-medium text-emerald-600"
-                    : "text-slate-600"
-              }
-            >
-              {delay > 0
-                ? `+${delay}d`
-                : delay === 0
-                  ? "0d"
-                  : `${delay}d`}
-            </span>
-          )}
-        </td>
+        {isCompletedTab && (
+          <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-600 text-center align-middle">
+            {task.actual_date
+              ? formatDate(task.actual_date)
+              : "—"}
+          </td>
+        )}
         <td className="px-3 py-3 text-center align-middle">
           <span
             className={`inline-flex rounded-lg px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ring-1 ${statusStyle(
@@ -541,13 +632,34 @@ export function useDelegationTasks({
             ? formatDate(task.new_target_date)
             : "—"}
         </td>
+        <td className="whitespace-nowrap px-3 py-3 text-sm text-center align-middle">
+          {delay == null ? (
+            <span className="text-slate-400">—</span>
+          ) : (
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                delay > 0
+                  ? "bg-red-50 text-red-700 ring-1 ring-red-200"
+                  : delay < 0
+                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                    : "bg-slate-100 text-slate-700"
+              }`}
+            >
+              {delay > 0
+                ? `+${delay}d`
+                : delay === 0
+                  ? "0d"
+                  : `${delay}d`}
+            </span>
+          )}
+        </td>
       </tr>
     );
   };
 
   const renderCard = (task) => {
-    const isDone = String(task.status || "").toLowerCase() === "completed";
-    const delay = task.delay_duration;
+    const isCompletedTab = tab === "completed";
+    const delay = getDelegationDelay(task);
 
     return (
       <div key={task.id} className="p-4 sm:p-5 flex flex-col gap-4 transition-all duration-300 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden bg-white hover:shadow-md">
@@ -567,7 +679,7 @@ export function useDelegationTasks({
             <button
               type="button"
               onClick={() => setSelectedTask(task)}
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+              className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95"
             >
               Update
             </button>
@@ -577,26 +689,46 @@ export function useDelegationTasks({
         <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm bg-gray-50/50 p-4 rounded-xl border border-gray-100/50">
           <div className="col-span-2">
             <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Task Details</span>
-            <span className="font-semibold text-gray-900">{task.task_details}</span>
+            <span className="font-semibold text-gray-900">{cleanTaskDetails(task.task_details)}</span>
           </div>
           <div>
             <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Target</span>
-            <span className="font-semibold text-gray-900">{formatDate(task.target_date)}</span>
+            <div className="font-semibold text-gray-900">
+              {formatDate(task.target_date)}
+              {getDelegatedTaskTime(task) && (
+                <div className="mt-0.5">
+                  <span className="inline-flex items-center gap-1 rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700">
+                    <Clock className="h-2.5 w-2.5 text-indigo-500" />
+                    {formatTaskTime(getDelegatedTaskTime(task))}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
           <div>
             <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Planned</span>
             <span className="font-semibold text-gray-900">{formatDate(task.planned_date)}</span>
           </div>
-          <div>
-            <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Actual</span>
-            <span className="font-semibold text-gray-900">{task.actual_date ? formatDate(task.actual_date) : "—"}</span>
-          </div>
+          {isCompletedTab && (
+            <div>
+              <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Actual</span>
+              <span className="font-semibold text-gray-900">{task.actual_date ? formatDate(task.actual_date) : "—"}</span>
+            </div>
+          )}
           <div>
             <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Delay</span>
             {delay == null ? (
               <span className="text-slate-400">—</span>
             ) : (
-              <span className={`font-semibold ${delay > 0 ? "text-red-600" : delay < 0 ? "text-emerald-600" : "text-slate-600"}`}>
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  delay > 0
+                    ? "bg-red-50 text-red-700 ring-1 ring-red-200"
+                    : delay < 0
+                      ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                      : "bg-slate-100 text-slate-700"
+                }`}
+              >
                 {delay > 0 ? `+${delay}d` : delay === 0 ? "0d" : `${delay}d`}
               </span>
             )}
@@ -674,7 +806,7 @@ export function useDelegationTasks({
       ) : (
         <div className="flex-1 min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <DataTable
-            headers={HEADERS}
+            headers={tab === "completed" ? COMPLETED_HEADERS : PENDING_HEADERS}
             data={paginated}
             renderRow={renderRow}
             renderCard={renderCard}

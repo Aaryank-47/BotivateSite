@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Phone,
@@ -8,12 +8,19 @@ import {
   Building2,
   FileText,
   Calendar,
+  Clock,
   Send,
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
-import { createWeeklyCall } from "../../../services/schemaApi";
+import {
+  createWeeklyCall,
+  fetchCompanies,
+  fetchWeeklyCalls,
+  fetchDelegationUsers,
+} from "../../../services/schemaApi";
 import Select from "../shared/Select";
+import ComboboxField from "./ComboboxField";
 
 const DAYS = [
   "Monday",
@@ -23,6 +30,14 @@ const DAYS = [
   "Friday",
   "Saturday",
   "Sunday",
+];
+
+const TIME_PRESETS = [
+  { label: "10:00 AM", val: "10:00" },
+  { label: "11:30 AM", val: "11:30" },
+  { label: "02:00 PM", val: "14:00" },
+  { label: "04:00 PM", val: "16:00" },
+  { label: "06:00 PM", val: "18:00" },
 ];
 
 const COUNTRY_CODES = [
@@ -78,9 +93,166 @@ export default function WeeklyCallsForm({
   const [callingPersonName, setCallingPersonName] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [callingDays, setCallingDays] = useState([]);
+  const [callingTime, setCallingTime] = useState("");
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+
+  // Dropdown options state
+  const [loadingDropdowns, setLoadingDropdowns] = useState(true);
+  const [companies, setCompanies] = useState([]);
+  const [weeklyCalls, setWeeklyCalls] = useState([]);
+  const [teamUsers, setTeamUsers] = useState([]);
+
+  // Load companies, existing weekly calls, and team members for dropdowns
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingDropdowns(true);
+        const [companiesRes, weeklyRes, usersRes] = await Promise.allSettled([
+          fetchCompanies(),
+          fetchWeeklyCalls(),
+          fetchDelegationUsers(),
+        ]);
+
+        if (cancelled) return;
+
+        if (companiesRes.status === "fulfilled" && Array.isArray(companiesRes.value)) {
+          setCompanies(companiesRes.value);
+        }
+        if (weeklyRes.status === "fulfilled" && Array.isArray(weeklyRes.value)) {
+          setWeeklyCalls(weeklyRes.value);
+        }
+        if (usersRes.status === "fulfilled" && Array.isArray(usersRes.value)) {
+          setTeamUsers(usersRes.value);
+        }
+      } catch (err) {
+        console.error("Error fetching dropdown options for weekly calls:", err);
+      } finally {
+        if (!cancelled) setLoadingDropdowns(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Build sorted list of unique parties
+  const partyOptions = useMemo(() => {
+    const map = new Map();
+    // 1. Registered companies
+    companies.forEach((c) => {
+      const name = (c.name || c.company_name || "").trim();
+      if (name) {
+        map.set(name.toLowerCase(), {
+          label: name,
+          value: name,
+          badge: "Company",
+        });
+      }
+    });
+    // 2. Distinct party names from previous weekly calls
+    weeklyCalls.forEach((w) => {
+      const name = (w.party_name || "").trim();
+      if (name && !map.has(name.toLowerCase())) {
+        map.set(name.toLowerCase(), {
+          label: name,
+          value: name,
+          badge: "Party",
+        });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) =>
+      a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
+    );
+  }, [companies, weeklyCalls]);
+
+  // Contacts mapped by party name (lowercase)
+  const contactsByParty = useMemo(() => {
+    const map = {};
+    weeklyCalls.forEach((w) => {
+      const pKey = (w.party_name || "").trim().toLowerCase();
+      if (!pKey || !w.responsible_person) return;
+      if (!map[pKey]) map[pKey] = [];
+      const personName = w.responsible_person.trim();
+      const existing = map[pKey].find(
+        (c) => c.name.toLowerCase() === personName.toLowerCase()
+      );
+      if (!existing) {
+        map[pKey].push({
+          name: personName,
+          phone: w.responsible_phone || "",
+        });
+      }
+    });
+    return map;
+  }, [weeklyCalls]);
+
+  // Build list of responsible person options (prioritizing selected party's contacts)
+  const responsiblePersonOptions = useMemo(() => {
+    const currentPartyKey = (partyName || "").trim().toLowerCase();
+    const partyContacts = (currentPartyKey && contactsByParty[currentPartyKey]) || [];
+
+    const result = [];
+    const seen = new Set();
+
+    // 1. Contacts specifically for the selected party (top priority)
+    partyContacts.forEach((c) => {
+      seen.add(c.name.toLowerCase());
+      result.push({
+        label: c.name,
+        value: c.name,
+        phone: c.phone || "",
+        badge: "Party Contact",
+      });
+    });
+
+    // 2. Contacts from all other parties
+    weeklyCalls.forEach((w) => {
+      const name = (w.responsible_person || "").trim();
+      if (name && !seen.has(name.toLowerCase())) {
+        seen.add(name.toLowerCase());
+        result.push({
+          label: name,
+          value: name,
+          phone: w.responsible_phone || "",
+          badge: w.party_name ? `${w.party_name}` : "Client Contact",
+        });
+      }
+    });
+
+    // 3. Team members / delegation users
+    teamUsers.forEach((u) => {
+      const name = (u.name || u.username || "").trim();
+      if (name && !seen.has(name.toLowerCase())) {
+        seen.add(name.toLowerCase());
+        result.push({
+          label: name,
+          value: name,
+          phone: "",
+          badge: "Team Member",
+        });
+      }
+    });
+
+    return result;
+  }, [partyName, contactsByParty, weeklyCalls, teamUsers]);
+
+  // Auto-fill phone and country code from contact
+  const applyContactPhone = (rawPhone) => {
+    if (!rawPhone) return;
+    const clean = String(rawPhone).trim();
+    const matched = COUNTRY_CODES.find((c) => clean.startsWith(c.code));
+    if (matched) {
+      setCountryCode(matched.code);
+      setPhone(clean.slice(matched.code.length).replace(/\D/g, ""));
+    } else {
+      setPhone(clean.replace(/\D/g, ""));
+    }
+    setErrors((p) => ({ ...p, phone: undefined }));
+  };
 
   const toggleDay = (d) => {
     setCallingDays((prev) =>
@@ -100,13 +272,14 @@ export default function WeeklyCallsForm({
     if (!partyName.trim()) next.partyName = "Party name is required";
     if (!responsiblePerson.trim())
       next.responsiblePerson = "Responsible person is required";
-    if (!phone.trim()) next.phone = "Phone number is required";
-    else if (phone.length < 7) next.phone = "Enter a valid phone number";
+    if (!phone.trim()) next.phone = "Client number is required";
+    else if (phone.length < 7) next.phone = "Enter a valid client number";
     if (!callingPersonName.trim())
       next.callingPersonName = "Calling person name is required";
     if (!taskDescription.trim())
       next.taskDescription = "Task description is required";
     if (!callingDays.length) next.callingDays = "Select at least one day";
+    if (!callingTime) next.callingTime = "Time is required";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -124,6 +297,7 @@ export default function WeeklyCallsForm({
         calling_person_name: callingPersonName.trim(),
         task_description: taskDescription.trim(),
         calling_days: callingDays,
+        calling_time: callingTime,
         assigned_by: currentUserId,
       });
       setSuccessMsg("Weekly call scheduled successfully.");
@@ -133,6 +307,7 @@ export default function WeeklyCallsForm({
       setCallingPersonName("");
       setTaskDescription("");
       setCallingDays([]);
+      setCallingTime("");
       setErrors({});
       setTimeout(() => setSuccessMsg(""), 4000);
     } catch (err) {
@@ -178,60 +353,59 @@ export default function WeeklyCallsForm({
           </div>
 
           <div className="space-y-5 p-5 sm:p-6">
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                Party name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={partyName}
-                onChange={(e) => {
-                  setPartyName(e.target.value);
-                  setErrors((p) => ({ ...p, partyName: undefined }));
-                }}
-                placeholder="Company / customer name"
-                className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-violet-500/40 ${
-                  errors.partyName
-                    ? "border-red-300 ring-1 ring-red-100"
-                    : "border-slate-200 hover:border-slate-300"
-                }`}
-              />
-              {errors.partyName && (
-                <p className="mt-1 text-xs text-red-500">{errors.partyName}</p>
-              )}
-            </div>
+            {/* 1. Party Name (Dropdown / Combobox) */}
+            <ComboboxField
+              id="weekly-party-name"
+              label="Party name"
+              icon={Building2}
+              required
+              value={partyName}
+              options={partyOptions}
+              loading={loadingDropdowns}
+              onChange={(val, opt) => {
+                setPartyName(val);
+                setErrors((p) => ({ ...p, partyName: undefined }));
+                // Auto-fill contact if single contact is known for this party and responsiblePerson is empty
+                const pKey = (val || "").trim().toLowerCase();
+                const matchedContacts = contactsByParty[pKey] || [];
+                if (matchedContacts.length === 1 && !responsiblePerson) {
+                  setResponsiblePerson(matchedContacts[0].name);
+                  if (matchedContacts[0].phone) {
+                    applyContactPhone(matchedContacts[0].phone);
+                  }
+                }
+              }}
+              placeholder="Select or type party name"
+              error={errors.partyName}
+              emptyMessage="No party found. Type to add a new party."
+            />
 
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                <User className="h-3.5 w-3.5 text-slate-400" />
-                Responsible person <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={responsiblePerson}
-                onChange={(e) => {
-                  setResponsiblePerson(e.target.value);
-                  setErrors((p) => ({ ...p, responsiblePerson: undefined }));
-                }}
-                placeholder="Contact person at party"
-                className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-violet-500/40 ${
-                  errors.responsiblePerson
-                    ? "border-red-300 ring-1 ring-red-100"
-                    : "border-slate-200 hover:border-slate-300"
-                }`}
-              />
-              {errors.responsiblePerson && (
-                <p className="mt-1 text-xs text-red-500">
-                  {errors.responsiblePerson}
-                </p>
-              )}
-            </div>
+            {/* 2. Responsible Person (Dropdown / Combobox) */}
+            <ComboboxField
+              id="weekly-responsible-person"
+              label="Responsible person"
+              icon={User}
+              required
+              value={responsiblePerson}
+              options={responsiblePersonOptions}
+              loading={loadingDropdowns}
+              onChange={(val, opt) => {
+                setResponsiblePerson(val);
+                setErrors((p) => ({ ...p, responsiblePerson: undefined }));
+                if (opt?.phone) {
+                  applyContactPhone(opt.phone);
+                }
+              }}
+              placeholder="Select or type responsible person"
+              error={errors.responsiblePerson}
+              emptyMessage="No contacts found. Type to add a new contact."
+            />
 
+            {/* 3. Client Number (Replaced "Responsible person phone") */}
             <div>
               <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
                 <Phone className="h-3.5 w-3.5 text-slate-400" />
-                Responsible person phone <span className="text-red-500">*</span>
+                Client Number <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
                 <Select
@@ -250,7 +424,7 @@ export default function WeeklyCallsForm({
                   inputMode="numeric"
                   value={phone}
                   onChange={(e) => onPhoneChange(e.target.value)}
-                  placeholder="Phone number only"
+                  placeholder="Client number only"
                   className={`min-w-0 flex-1 rounded-xl border bg-white px-3.5 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-violet-500/40 ${
                     errors.phone
                       ? "border-red-300 ring-1 ring-red-100"
@@ -263,6 +437,7 @@ export default function WeeklyCallsForm({
               )}
             </div>
 
+            {/* 4. Calling Person Name */}
             <div>
               <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
                 <User className="h-3.5 w-3.5 text-slate-400" />
@@ -289,6 +464,7 @@ export default function WeeklyCallsForm({
               )}
             </div>
 
+            {/* 5. Task Description */}
             <div>
               <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
                 <FileText className="h-3.5 w-3.5 text-slate-400" />
@@ -315,6 +491,7 @@ export default function WeeklyCallsForm({
               )}
             </div>
 
+            {/* 6. Calling Days */}
             <div>
               <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
                 <Calendar className="h-3.5 w-3.5 text-slate-400" />
@@ -341,6 +518,60 @@ export default function WeeklyCallsForm({
               </div>
               {errors.callingDays && (
                 <p className="mt-1 text-xs text-red-500">{errors.callingDays}</p>
+              )}
+            </div>
+
+            {/* 7. Niche Time Selection (Time field directly below Calling days) */}
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                <Clock className="h-3.5 w-3.5 text-slate-400" />
+                Time <span className="text-red-500">*</span>
+              </label>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="relative flex-1">
+                  <input
+                    type="time"
+                    value={callingTime}
+                    onChange={(e) => {
+                      setCallingTime(e.target.value);
+                      setErrors((p) => ({ ...p, callingTime: undefined }));
+                    }}
+                    className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-violet-500/40 ${
+                      errors.callingTime
+                        ? "border-red-300 ring-1 ring-red-100"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  />
+                </div>
+                {/* Quick preset chips */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-medium text-slate-400 mr-1 hidden sm:inline">
+                    Quick pick:
+                  </span>
+                  {TIME_PRESETS.map((preset) => {
+                    const active = callingTime === preset.val;
+                    return (
+                      <button
+                        key={preset.val}
+                        type="button"
+                        onClick={() => {
+                          setCallingTime(preset.val);
+                          setErrors((p) => ({ ...p, callingTime: undefined }));
+                        }}
+                        className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+                          active
+                            ? "bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-sm"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {errors.callingTime && (
+                <p className="mt-1 text-xs text-red-500">{errors.callingTime}</p>
               )}
             </div>
 

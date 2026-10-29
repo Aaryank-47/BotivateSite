@@ -359,11 +359,58 @@ const storage = {
 
 const supabase = {
   from: (table) => new Query(table),
-  // Postgres functions (transactions) only exist on the real database
-  rpc: async (fn) => ({
-    data: null,
-    error: { message: `"${fn}" needs the Supabase database (set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).` },
-  }),
+  // Postgres functions (transactions) handled for mock/offline testing
+  rpc: async (fn, args) => {
+    if (fn === "complete_task_with_delivery") {
+      const {
+        p_task_id,
+        p_system_link,
+        p_github_link,
+        p_login_id,
+        p_password,
+        p_remarks,
+      } = args || {};
+      const d = load();
+      const task = (d.tables.user_tasks || []).find((t) => String(t.id) === String(p_task_id));
+      if (task) {
+        task.status = "Completed";
+        task.completed_at = nowIso();
+        task.updated_at = nowIso();
+        if (p_system_link) task.link_of_system = p_system_link;
+        if (p_github_link) task.github_link = p_github_link;
+        if (p_login_id) task.system_login_id = p_login_id;
+        if (p_password) task.system_password = p_password;
+        if (p_remarks) task.remarks = p_remarks;
+      }
+      const sub = (d.tables.task_subtasks || []).find((t) => String(t.id) === String(p_task_id));
+      if (sub) {
+        sub.status = "Completed";
+        sub.completed_at = nowIso();
+        sub.updated_at = nowIso();
+        if (p_system_link) sub.link_of_system = p_system_link;
+        if (p_github_link) sub.github_link = p_github_link;
+        if (p_login_id) sub.system_login_id = p_login_id;
+        if (p_password) sub.system_password = p_password;
+        if (p_remarks) sub.remarks = p_remarks;
+      }
+      insertRows("task_testing", [{
+        task_id: p_task_id,
+        system_link: p_system_link,
+        github_link: p_github_link,
+        system_login_id: p_login_id,
+        system_password: p_password,
+        test_status: "Pending",
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      }]);
+      persist();
+      return { data: 1, error: null };
+    }
+    return {
+      data: null,
+      error: { message: `"${fn}" needs the Supabase database (set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).` },
+    };
+  },
   storage,
 };
 

@@ -7,6 +7,7 @@ import {
   User,
   FileText,
   Calendar,
+  Clock,
   Send,
   CheckCircle2,
   AlertCircle,
@@ -60,6 +61,7 @@ export default function DelegationForm({
   const [personId, setPersonId] = useState("");
   const [taskDetails, setTaskDetails] = useState("");
   const [targetDate, setTargetDate] = useState("");
+  const [targetTime, setTargetTime] = useState("");
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -113,6 +115,7 @@ export default function DelegationForm({
       const td = new Date(targetDate);
       if (td < today) next.targetDate = "Target date cannot be in the past";
     }
+    if (!targetTime) next.targetTime = "Target time is required";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -133,11 +136,13 @@ export default function DelegationForm({
         assigned_to: personId,
         assigned_by: currentUserId,
         target_date: targetDate,
+        target_time: targetTime,
       });
       setSuccessMsg("Task delegated successfully.");
       setPersonId("");
       setTaskDetails("");
       setTargetDate("");
+      setTargetTime("");
       setPersonSearch("");
       setErrors({});
       setTimeout(() => setSuccessMsg(""), 4000);
@@ -400,28 +405,53 @@ export default function DelegationForm({
               )}
             </div>
 
-            {/* Target date */}
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                Target date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={targetDate}
-                onChange={(e) => {
-                  setTargetDate(e.target.value);
-                  setErrors((prev) => ({ ...prev, targetDate: undefined }));
-                }}
-                className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-indigo-500/40 ${
-                  errors.targetDate
-                    ? "border-red-300 ring-1 ring-red-100"
-                    : "border-slate-200 focus:border-indigo-300"
-                }`}
-              />
-              {errors.targetDate && (
-                <p className="mt-1 text-xs text-red-500">{errors.targetDate}</p>
-              )}
+            {/* Target Date & Time */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                  <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                  Target date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => {
+                    setTargetDate(e.target.value);
+                    setErrors((prev) => ({ ...prev, targetDate: undefined }));
+                  }}
+                  className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-indigo-500/40 ${
+                    errors.targetDate
+                      ? "border-red-300 ring-1 ring-red-100"
+                      : "border-slate-200 focus:border-indigo-300"
+                  }`}
+                />
+                {errors.targetDate && (
+                  <p className="mt-1 text-xs text-red-500">{errors.targetDate}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                  <Clock className="h-3.5 w-3.5 text-slate-400" />
+                  Target time <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="time"
+                  value={targetTime}
+                  onChange={(e) => {
+                    setTargetTime(e.target.value);
+                    setErrors((prev) => ({ ...prev, targetTime: undefined }));
+                  }}
+                  className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-indigo-500/40 ${
+                    errors.targetTime
+                      ? "border-red-300 ring-1 ring-red-100"
+                      : "border-slate-200 focus:border-indigo-300"
+                  }`}
+                />
+                {errors.targetTime && (
+                  <p className="mt-1 text-xs text-red-500">{errors.targetTime}</p>
+                )}
+              </div>
             </div>
 
             {errors.form && (
@@ -446,6 +476,7 @@ export default function DelegationForm({
                 setPersonId("");
                 setTaskDetails("");
                 setTargetDate("");
+                setTargetTime("");
                 setErrors({});
                 setSuccessMsg("");
               }}

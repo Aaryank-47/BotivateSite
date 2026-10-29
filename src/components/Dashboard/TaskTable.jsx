@@ -355,12 +355,14 @@ export default function EmployeeTasksTable({
   const renderRow = (task) => {
     const selected = selectedIds.has(task.id);
     const draft = getDraft(task);
+    const isRejected = task.is_testing_issue || task.relation_type === "Testing Issue" || (typeof task.description_of_work === "string" && /\[Testing issue/i.test(task.description_of_work));
+    const rejectedReason = task.issue_remarks || (typeof task.description_of_work === "string" ? task.description_of_work.match(/^\[(?:Testing issue|Delivery not approved|Customer not informed)[^\]]*\]\s*(.*)$/i)?.[1]?.trim() : "");
 
     return (
       <tr
         key={task.id}
         className={`hover:bg-gray-50 ${
-          selected ? "bg-blue-50/40" : ""
+          selected ? "bg-blue-50/40" : isRejected ? "bg-rose-50/60 hover:bg-rose-100/60" : ""
         }`}
       >
         {isAdmin && viewTab === "pending" && (
@@ -501,7 +503,21 @@ export default function EmployeeTasksTable({
                 : "—"}
             </td>
             <td className={`${tdBase} text-sm text-gray-700 text-center align-middle`}>
-              {task.remarks || "—"}
+              {isRejected && rejectedReason ? (
+                <div className="flex flex-col items-center justify-center gap-1">
+                  <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-rose-100 text-rose-700">
+                    Testing Issue
+                  </span>
+                  <span className="text-xs font-semibold text-rose-950">
+                    {rejectedReason}
+                  </span>
+                  {task.remarks && task.remarks !== rejectedReason && (
+                    <span className="text-xs text-gray-500">{task.remarks}</span>
+                  )}
+                </div>
+              ) : (
+                task.remarks || "—"
+              )}
             </td>
           </>
         )}
@@ -529,7 +545,17 @@ export default function EmployeeTasksTable({
         )}
 
         <td className={`${tdBase} text-sm font-medium text-blue-600 whitespace-nowrap text-center align-middle`}>
-          {task.task_no}
+          <div className="flex flex-col items-center justify-center gap-1">
+            <span>{task.task_no}</span>
+            {isRejected && (
+              <span
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-rose-100 text-rose-700 border border-rose-300"
+                title={rejectedReason ? `Rejected Reason: ${rejectedReason}` : "Rejected from testing"}
+              >
+                Rejected
+              </span>
+            )}
+          </div>
         </td>
         <td className={`${tdBase} text-sm text-gray-700 whitespace-nowrap text-center align-middle`}>
           {formatDate(task.given_date)}

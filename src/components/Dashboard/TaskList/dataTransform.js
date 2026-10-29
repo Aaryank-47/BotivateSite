@@ -76,8 +76,41 @@ export const transformSupabaseData = (rawData) => {
                 row.party_name ||
                 "";
             const systemName = row.systems?.name || row.system_name || "";
+
+            // Check if this task was created as a rework / rejection from testing or other stages
+            const isTestingReject =
+                row.relation_type === "Testing Issue" ||
+                row.is_testing_issue === true ||
+                (typeof row.description_of_work === "string" && /\[Testing issue/i.test(row.description_of_work));
+
+            const isApprovalReject =
+                row.relation_type === "Approval Not Done" ||
+                (typeof row.description_of_work === "string" && /\[Delivery not approved/i.test(row.description_of_work));
+
+            const isInformReject =
+                row.relation_type === "Inform Not Done" ||
+                (typeof row.description_of_work === "string" && /\[Customer not informed/i.test(row.description_of_work));
+
+            const isRejected = isTestingReject || isApprovalReject || isInformReject;
+
+            let rejectType = null;
+            if (isTestingReject) rejectType = "Testing";
+            else if (isApprovalReject) rejectType = "Approval";
+            else if (isInformReject) rejectType = "Customer Inform";
+
+            let rejectedReason = (row.issue_remarks || "").trim();
+            if (!rejectedReason && row.description_of_work) {
+                const match = row.description_of_work.match(
+                    /^\[(?:Testing issue|Delivery not approved|Customer not informed)[^\]]*\]\s*(.*)$/i
+                );
+                if (match && match[1]) {
+                    rejectedReason = match[1].trim();
+                }
+            }
+
             const remarksText =
                 row.remarks ||
+                (isRejected ? rejectedReason : "") ||
                 row.notes ||
                 "";
             const timeRequiredText =
@@ -97,7 +130,10 @@ export const transformSupabaseData = (rawData) => {
                 partyName,
                 systemName,
                 descriptionOfWork: row.description_of_work || "",
-                linkOfSystem: row.link_of_system || "",
+                linkOfSystem: row.link_of_system || row.systems?.website_link || "",
+                githubLink: row.github_link || "",
+                systemLoginId: row.system_login_id || row.systems?.system_username || "",
+                systemPassword: row.system_password || row.systems?.system_password || "",
                 attachmentFile: row.attachment_file || "",
                 priorityInCustomer: row.priority || "Medium",
                 notes: row.notes || "",
@@ -120,6 +156,13 @@ export const transformSupabaseData = (rawData) => {
                 assignedMember2Id: row.assigned_member_2 ?? null,
                 // sub-task: members always follow the main task's
                 isSubtask: !!row.is_subtask,
+                isRejected: !!isRejected,
+                isTestingReject: !!isTestingReject,
+                isTestingIssue: !!isTestingReject,
+                rejectType,
+                rejectedReason,
+                relationType: row.relation_type || (isTestingReject ? "Testing Issue" : ""),
+                issueRemarks: row.issue_remarks || rejectedReason,
                 timeRequired: timeRequiredText,
                 remarks2: remarksText,
                 planned3: formatDateTime(row.expected_date_to_close),

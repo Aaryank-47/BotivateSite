@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import Modal, { Field, ReadOnlyField, inputClass } from "../shared/Modal";
 import { completeTaskWithDelivery, postponeTask } from "../../../services/schemaApi";
 import Select from "../shared/Select";
@@ -86,6 +87,23 @@ export default function TaskUpdateModal({ task, userId, userName, onClose, onSav
         </>
       }
     >
+      {task.isRejected && (
+        <div className="sm:col-span-2 p-3 mb-2 rounded-xl bg-rose-50 border border-rose-200 shadow-2xs">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold text-rose-800 uppercase tracking-wider">
+                Task Rejected from {task.rejectType || "Testing"}
+              </div>
+              {task.rejectedReason && (
+                <div className="text-sm font-medium text-rose-950 mt-1">
+                  <span className="font-semibold text-rose-900">Reason:</span> {task.rejectedReason}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <ReadOnlyField label="Task No" value={task.taskNo} />
       <ReadOnlyField label="Company Name" value={task.partyName} />
       <ReadOnlyField label="System Name" value={task.systemName} />

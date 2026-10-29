@@ -2906,7 +2906,15 @@ function MemberTasksModal({
                                 </td>
                                 <td className="px-3 py-2.5 text-gray-600 text-center align-middle">{by}</td>
                                 <td className="px-3 py-2.5 text-center text-gray-500 tabular-nums text-[13px] align-middle">
-                                  {formatDate(d.target_date)}
+                                  <div>{formatDate(d.target_date)}</div>
+                                  {d.target_time && (
+                                    <div className="mt-0.5">
+                                      <span className="inline-flex items-center gap-1 rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700">
+                                        <Clock className="h-2.5 w-2.5 text-indigo-500" />
+                                        {d.target_time}
+                                      </span>
+                                    </div>
+                                  )}
                                 </td>
                                 <td className="px-3 py-2.5 text-center text-gray-500 tabular-nums text-[13px] align-middle">
                                   {formatDate(d.planned_date)}
@@ -2973,7 +2981,17 @@ function MemberTasksModal({
                               </div>
                               <div>
                                 <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Target</span>
-                                <span className="font-semibold text-gray-900">{formatDate(d.target_date)}</span>
+                                <div className="font-semibold text-gray-900">
+                                  {formatDate(d.target_date)}
+                                  {d.target_time && (
+                                    <div className="mt-0.5">
+                                      <span className="inline-flex items-center gap-1 rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700">
+                                        <Clock className="h-2.5 w-2.5 text-indigo-500" />
+                                        {d.target_time}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               <div>
                                 <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Planned</span>
@@ -3260,6 +3278,14 @@ function MemberTasksModal({
                           >
                             {st}
                           </span>
+                          {(t.is_testing_issue || t.relation_type === "Testing Issue" || (typeof t.description_of_work === "string" && /\[Testing issue/i.test(t.description_of_work))) && (
+                            <span
+                              className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200"
+                              title={t.issue_remarks ? `Rejected Reason: ${t.issue_remarks}` : "Rejected from testing"}
+                            >
+                              Rejected from Testing
+                            </span>
+                          )}
                           {t.priority && (
                             <span
                               className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
