@@ -3,7 +3,7 @@ import {
   fetchCompanies,
   fetchSystems,
   fetchAssignableMembers,
-  fetchTakenFromUsers,
+  fetchTakenFromNames,
   WORK_TYPE_OPTIONS,
 } from "../../../services/schemaApi";
 
@@ -23,7 +23,7 @@ export const useDropdownData = (userRole, currentUserId) => {
       const [companyRows, memberRows, takenFromRows] = await Promise.all([
         fetchCompanies(),
         fetchAssignableMembers(currentUserId),
-        fetchTakenFromUsers(currentUserId),
+        fetchTakenFromNames(currentUserId),
       ]);
       setCompanies(companyRows);
       setAssignableMembers(memberRows);

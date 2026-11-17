@@ -50,8 +50,6 @@ export const transformSupabaseData = (rawData) => {
                 (typeof row.posted_by === "string" ? row.posted_by : "") ||
                 "";
             const takenFromName =
-                row.taken_from_user?.name ||
-                row.taken_from_user?.username ||
                 (typeof row.taken_from === "string" ? row.taken_from : "") ||
                 "";
             const assigneeName =

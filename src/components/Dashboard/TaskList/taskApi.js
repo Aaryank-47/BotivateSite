@@ -7,8 +7,6 @@ const TASK_SELECT = `
       *,
       company:users!user_tasks_company_id_fkey ( id, name, company_name ),
       systems ( id, name, website_link, system_username, system_password ),
-      posted_by_user:users!user_tasks_posted_by_fkey ( id, name, username ),
-      taken_from_user:users!user_tasks_taken_from_fkey ( id, name, username ),
       assigned_member:users!user_tasks_assigned_member_1_fkey ( id, name, username ),
       assigned_member_1_user:users!user_tasks_assigned_member_1_fkey ( id, name, username ),
       assigned_member_2_user:users!user_tasks_assigned_member_2_fkey ( id, name, username ),

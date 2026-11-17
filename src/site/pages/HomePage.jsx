@@ -7,6 +7,7 @@ import ProductBanner from '../components/ProductBanner';
 import Results from '../components/Results';
 import AboutTeaser from '../components/AboutTeaser';
 import ServicesTeaser from '../components/ServicesTeaser';
+import CloudInfraTeaser from '../components/CloudInfraTeaser';
 import Technologies from '../components/Technologies';
 import Testimonials from '../components/Testimonials';
 import Founder from '../components/Founder';
@@ -20,6 +21,7 @@ export default function HomePage() {
       <Results />
       <AboutTeaser />
       <ServicesTeaser />
+      <CloudInfraTeaser />
       <Technologies />
       <Testimonials />
       <Founder />

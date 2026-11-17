@@ -400,11 +400,14 @@ export default function AssignTaskForm({
 
           const payload = {
             given_date: givenDate,
-            posted_by: postedBy,
+            // user_tasks.posted_by is plain text: the logged-in person's name
+            posted_by: currentUserName || String(postedBy),
             taken_from: (() => {
-              const id = toId(formData.takenFrom);
-              if (!id) throw new Error("Taken From (person) is required.");
-              return id;
+              const typed = String(formData.takenFrom || "").replace(/\s+/g, " ").trim();
+              if (!typed) throw new Error("Taken From (person) is required.");
+              // same person typed in a different case -> reuse the stored spelling (no repeated names)
+              const known = takenFromUsers.find((u) => (u.name || "").toLowerCase() === typed.toLowerCase());
+              return known?.name || typed;
             })(),
             company_id: companyId,
             type_of_work: task.typeOfWork || formData.typeOfWork,
@@ -457,10 +460,12 @@ export default function AssignTaskForm({
 
           const payload = {
             given_date: givenDate,
-            posted_by: postedBy,
-            // Company tickets: taken_from must differ from posted_by due to DB constraint.
-            // Assigning to the first available employee as a placeholder.
-            taken_from: takenFromUsers?.[0]?.id || (postedBy === 1 ? 2 : 1),
+            // user_tasks.posted_by is plain text: the company's name
+            posted_by:
+              companyData?.companyName || userFilterData?.name || currentUserName || "Company",
+            // Company tickets: taken_from is the name of the company that raised it.
+            taken_from:
+              companyData?.companyName || userFilterData?.name || currentUserName || "Company",
             company_id: companyId,
             type_of_work: typeOfWork,
             expected_date_to_close: expectedDate,

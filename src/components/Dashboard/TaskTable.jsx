@@ -19,6 +19,7 @@ import {
   updateEmplTask,
   fetchAssignableMembersWithLoad,
   EMPL_TASK_STATUS_OPTIONS,
+  postedByName,
 } from "../../services/schemaApi";
 import Select from "./shared/Select";
 
@@ -588,10 +589,10 @@ export default function EmployeeTasksTable({
           {formatDate(task.given_date)}
         </td>
         <td className={`${tdBase} text-sm text-gray-700 text-center align-middle`}>
-          {task.posted_by_user?.name || "—"}
+          {postedByName(task) || "—"}
         </td>
         <td className={`${tdBase} text-sm text-gray-700 text-center align-middle`}>
-          {task.taken_from_user?.name || "—"}
+          {task.taken_from || "—"}
         </td>
         <td className={`${tdBase} text-sm text-gray-700 text-center align-middle`}>
           {task.type_of_work || "—"}
@@ -715,11 +716,11 @@ export default function EmployeeTasksTable({
         <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm bg-gray-50/50 p-4 rounded-xl border border-gray-100/50">
           <div>
             <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Posted By</span>
-            <span className="font-semibold text-gray-900">{task.posted_by_user?.name || "—"}</span>
+            <span className="font-semibold text-gray-900">{postedByName(task) || "—"}</span>
           </div>
           <div>
             <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Taken From</span>
-            <span className="font-semibold text-gray-900">{task.taken_from_user?.name || "—"}</span>
+            <span className="font-semibold text-gray-900">{task.taken_from || "—"}</span>
           </div>
           <div>
             <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Company</span>

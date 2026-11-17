@@ -13,6 +13,7 @@ const BotivateOSPage  = lazy(() => import("./site/pages/BotivateOSPage"))
 const FrogPlannerPage = lazy(() => import("./site/pages/FrogPlannerPage"))
 const MemoriesPage    = lazy(() => import("./site/pages/MemoriesPage"))
 const CareersPage     = lazy(() => import("./site/pages/CareersPage"))
+const CloudInfraPage  = lazy(() => import("./site/pages/CloudInfraPage"))
 
 const FullScreenLoader = () => (
   <div className="min-h-screen bg-white flex items-center justify-center">
@@ -167,6 +168,7 @@ export default function AppRoutes() {
             <Route index element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/services" element={<ServicesPage />} />
+            <Route path="/cloud-infra" element={<CloudInfraPage />} />
             <Route path="/autorocket" element={<BotivateOSPage />} />
             <Route path="/frog-planner" element={<FrogPlannerPage />} />
             {/* <Route path="/memories" element={<MemoriesPage />} /> */}

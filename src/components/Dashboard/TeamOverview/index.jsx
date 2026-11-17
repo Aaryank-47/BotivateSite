@@ -33,6 +33,7 @@ import {
   fetchChecklistTasks,
   fetchWeeklyCalls,
   fetchAllTasksWithSubtasks,
+  postedByName,
 } from "../../../services/schemaApi";
 import supabase from "../../../supabaseClient";
 import DataTable from "../shared/DataTable";
@@ -550,20 +551,23 @@ function MemberTasksModal({
   // In this schema company_id references the company user row, so
   // posted_by === company_id means the company account raised the ticket.
   // Admin / HOD assigned work is NOT counted as "From company".
+  // posted_by is now the poster's NAME (text): a company ticket has the company's name there.
+  // Old numeric ids (task_subtasks / not yet migrated rows) still match by id.
+  const normName = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
   const isFromCompany = (t) => {
-    const postedBy = t.posted_by ? Number(t.posted_by) : null;
-    const companyId = t.company_id
-      ? Number(t.company_id)
-      : t.company?.id
-        ? Number(t.company.id)
-        : null;
-    return !!(postedBy && companyId && postedBy === companyId);
+    const pb = normName(postedByName(t));
+    if (pb && [t.company?.company_name, t.company?.name].some((n) => normName(n) === pb)) return true;
+    const postedBy = Number(t.posted_by);
+    const companyId = Number(t.company_id || t.company?.id);
+    return Number.isFinite(postedBy) && postedBy > 0 && postedBy === companyId;
   };
 
   // Self = member created / took it themselves (not a company-raised ticket).
-  const isSelfAssigned = (t, mid) => {
+  const isSelfAssigned = (t, mid, memberName) => {
     if (!mid || isFromCompany(t)) return false;
-    const postedBy = t.posted_by ? Number(t.posted_by) : null;
+    const pb = normName(postedByName(t));
+    if (pb && memberName && pb === normName(memberName)) return true;
+    const postedBy = Number(t.posted_by) || null;
     const assignedBy = t.assigned_by ? Number(t.assigned_by) : null;
     return postedBy === mid || assignedBy === mid;
   };
@@ -600,7 +604,7 @@ function MemberTasksModal({
         if (reportFilter === "total") {
           // all tasks
         } else if (reportFilter === "self") {
-          if (!isSelfAssigned(t, member?.id ? Number(member.id) : null)) return false;
+          if (!isSelfAssigned(t, member?.id ? Number(member.id) : null, member?.name)) return false;
         } else if (reportFilter === "company") {
           if (!isFromCompany(t)) return false;
         } else if (reportFilter === "assign-completed-on-time") {
@@ -697,7 +701,7 @@ function MemberTasksModal({
       if (tasksByType[typeKey]) tasksByType[typeKey].push(t);
       else tasksByType.Other.push(t);
 
-      if (isSelfAssigned(t, mid)) selfAssigned += 1;
+      if (isSelfAssigned(t, mid, member?.name)) selfAssigned += 1;
       else if (isFromCompany(t)) fromCompany += 1;
 
       const st = t.status || "Pending";
@@ -3488,6 +3492,8 @@ export default function TeamOverview({ userFilterData, userRole }) {
   // HOD: never use global "all teams" — only their team(s). Admin/superadmin keep "all".
   const [selectedTeamId, setSelectedTeamId] = useState(isHod ? null : "all");
   const [selectedMember, setSelectedMember] = useState(null);
+  // "all" | "active" | "inactive" — filters the member records by user account status
+  const [activeFilter, setActiveFilter] = useState("all");
 
   const load = useCallback(async () => {
     if (!canView) return;
@@ -3502,7 +3508,7 @@ export default function TeamOverview({ userFilterData, userRole }) {
           .from("teams")
           .select(
             `id, name, team_type, description, is_active, hod_id,
-             team_members ( id, user_id, users ( id, name, username, role ) )`
+             team_members ( id, user_id, users ( id, name, username, role, is_active ) )`
           )
           .eq("is_active", true)
           .order("name", { ascending: true });
@@ -3512,7 +3518,7 @@ export default function TeamOverview({ userFilterData, userRole }) {
         // Employees who are in no team: shown under a synthetic "No Team" group
         const { data: emps, error: empErr } = await supabase
           .from("users")
-          .select("id, name, username, role")
+          .select("id, name, username, role, is_active")
           .neq("role", "company")
           .order("name", { ascending: true });
         if (empErr) throw empErr;
@@ -3719,6 +3725,7 @@ export default function TeamOverview({ userFilterData, userRole }) {
           name: u?.name || "Unknown",
           username: u?.username || "",
           role: u?.role || "employee",
+          isActive: u?.is_active !== false,
           teams: [team.name],
         });
       });
@@ -3726,8 +3733,19 @@ export default function TeamOverview({ userFilterData, userRole }) {
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
   }, [teams, selectedTeamId, isHod]);
 
+  const activeCounts = useMemo(() => {
+    const active = members.filter((m) => m.isActive).length;
+    return { all: members.length, active, inactive: members.length - active };
+  }, [members]);
+
+  const filteredMembers = useMemo(() => {
+    if (activeFilter === "active") return members.filter((m) => m.isActive);
+    if (activeFilter === "inactive") return members.filter((m) => !m.isActive);
+    return members;
+  }, [members, activeFilter]);
+
   const totals = useMemo(() => {
-    return members.reduce(
+    return filteredMembers.reduce(
       (acc, m) => {
         const s = taskStats[m.id] || {};
         acc.pending += s.pending || 0;
@@ -3738,7 +3756,7 @@ export default function TeamOverview({ userFilterData, userRole }) {
       },
       { pending: 0, inProgress: 0, completed: 0, people: 0 }
     );
-  }, [members, taskStats]);
+  }, [filteredMembers, taskStats]);
 
   if (!canView) {
     return (
@@ -3771,6 +3789,7 @@ export default function TeamOverview({ userFilterData, userRole }) {
         ))}
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap gap-2">
         {/* Admin / Superadmin: can see All teams. HOD: only their own team(s) — no All teams. */}
         {!isHod && (
@@ -3805,6 +3824,24 @@ export default function TeamOverview({ userFilterData, userRole }) {
         ))}
       </div>
 
+      {/* Active / Inactive filter — right side dropdown, filters all member records below */}
+      <div className="flex items-center gap-2 ml-auto">
+        <label htmlFor="team-account-filter" className="text-xs font-semibold text-gray-500">
+          Account:
+        </label>
+        <select
+          id="team-account-filter"
+          value={activeFilter}
+          onChange={(e) => setActiveFilter(e.target.value)}
+          className="px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        >
+          <option value="all">All ({activeCounts.all})</option>
+          <option value="active">Active ({activeCounts.active})</option>
+          <option value="inactive">Inactive ({activeCounts.inactive})</option>
+        </select>
+      </div>
+      </div>
+
       {error && (
         <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
@@ -3835,7 +3872,7 @@ export default function TeamOverview({ userFilterData, userRole }) {
                     Loading team…
                   </td>
                 </tr>
-              ) : members.length === 0 ? (
+              ) : filteredMembers.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-5 py-14 text-center text-gray-400 align-middle">
                     No team members found. Assign people to a team under this HOD
@@ -3843,7 +3880,7 @@ export default function TeamOverview({ userFilterData, userRole }) {
                   </td>
                 </tr>
               ) : (
-                members.map((m) => {
+                filteredMembers.map((m) => {
                   const s = taskStats[m.id] || {
                     pending: 0,
                     inProgress: 0,
@@ -3975,12 +4012,12 @@ export default function TeamOverview({ userFilterData, userRole }) {
             <div className="p-14 text-center text-gray-400">
               <RefreshCw className="w-5 h-5 animate-spin inline mr-2" /> Loading team…
             </div>
-          ) : members.length === 0 ? (
+          ) : filteredMembers.length === 0 ? (
             <div className="p-14 text-center text-gray-400">
               No team members found. Assign people to a team under this HOD in the database.
             </div>
           ) : (
-            members.map((m) => {
+            filteredMembers.map((m) => {
               const s = taskStats[m.id] || { pending: 0, inProgress: 0, completed: 0, total: 0, onTimeCompleted: 0, lastAssignDate: null, timeRemainingMinutes: 0 };
               const completionRate = s.total > 0 ? Math.round((s.completed / s.total) * 100) : 0;
               const onTimeRate = s.completed > 0 ? Math.round((s.onTimeCompleted / s.completed) * 100) : 0;

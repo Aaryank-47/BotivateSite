@@ -1,0 +1,155 @@
+/* =============================================
+   Cloud Infra — SLA & Reliability section
+   ============================================= */
+
+.ci-sla-section {
+  margin-bottom: 96px;
+}
+
+.ci-sla-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.ci-sla-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 16px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.ci-sla-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--ci-sla-color, #0284c7);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.ci-sla-icon-wrap svg {
+  width: 20px;
+  height: 20px;
+}
+
+.ci-sla-value {
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.ci-sla-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ci-sla-color, #0284c7);
+  margin-top: -6px;
+}
+
+.ci-sla-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ─── Severity / response-time table ──────────────── */
+.ci-sla-table-wrap {
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 16px;
+  overflow-x: auto;
+}
+
+.ci-sla-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.ci-sla-table th,
+.ci-sla-table td {
+  text-align: left;
+  padding: 16px 20px;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.ci-sla-table thead th {
+  font-family: var(--font-display), sans-serif;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.ci-sla-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.ci-sla-table tbody td:first-child {
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.ci-sla-severity {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ci-sla-severity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--ci-sev-color, #dc2626);
+}
+
+.ci-sla-table td strong {
+  color: var(--text-primary);
+}
+
+.ci-sla-note {
+  margin: 20px 4px 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* ─── Responsive ───────────────────────────── */
+@media (max-width: 960px) {
+  .ci-sla-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .ci-sla-grid {
+    grid-template-columns: 1fr;
+  }
+  .ci-sla-card {
+    padding: 22px 20px;
+  }
+  .ci-sla-table th,
+  .ci-sla-table td {
+    padding: 14px 16px;
+  }
+}

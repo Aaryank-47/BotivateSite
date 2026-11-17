@@ -14,6 +14,7 @@ const links = [
     ]
   },
   { label: 'Services',    path: '/services',    type: 'route' },
+  { label: 'Cloud Infra', path: '/cloud-infra', type: 'route' },
   { label: 'About',       path: '/about',       type: 'route' },
   { label: 'Contact',     path: '#',            type: 'scroll' },
   // { label: 'Memories',    path: '/memories',    type: 'route' },
