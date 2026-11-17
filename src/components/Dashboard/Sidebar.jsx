@@ -31,6 +31,7 @@ import {
   CalendarCheck,
 } from "lucide-react"
 
+const settingsChildIds = ["add-user", "add-company"]
 const orderChildIdsAll = ["order-list", "system-approvals", "assign-tester", "tester", "approval-delivery", "inform-customer"]
 
 const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterData, companyData }) => {
@@ -40,6 +41,7 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
   const [tasksOpen, setTasksOpen] = useState(false)
   const [checklistOpen, setChecklistOpen] = useState(false)
   const [orderOpen, setOrderOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [stageCounts, setPendingCounts] = useState({})
   const [pageCounts, setPageCounts] = useState({})
   useEffect(() => subscribeCounts(setPageCounts), [])
@@ -78,6 +80,8 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
       "checklist-pending": "Pending Task",
       "pc-page": "PC Page",
       "user-access": "User Access",
+      "add-user": "Add User",
+      "add-company": "Add Company",
       "holidays": "Holidays",
       "order-list": "Order List",
       "meeting": "Meeting",
@@ -111,6 +115,8 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
     { id: "reports", label: getTabLabel("reports", userRole), icon: BarChart3, key: "reports" },
     { id: "holidays", label: getTabLabel("holidays", userRole), icon: CalendarDays, key: "holidays" },
     { id: "user-access", label: getTabLabel("user-access", userRole), icon: UserCog, key: "user-access" },
+    { id: "add-user", label: getTabLabel("add-user", userRole), icon: UserPlus, key: "add-user" },
+    { id: "add-company", label: getTabLabel("add-company", userRole), icon: Building2, key: "add-company" },
     { id: "order-list", label: getTabLabel("order-list", userRole), icon: Package, key: "order-list" },
     { id: "meeting", label: getTabLabel("meeting", userRole), icon: CalendarCheck, key: "meeting" },
     // company accounts only: their own systems page (click a system to see its tasks)
@@ -272,11 +278,14 @@ const handleCompanyPermissions = (userData) => {
       if (roleAll === "admin") {
         return allTabs.filter((t) => t.id !== "user-access" && t.id !== "system-approvals")
       }
+      // Settings > Add User / Add Company: admin & superadmin only (handled above)
+      const SETTINGS_IDS = ["add-user", "add-company"]
       // company with "all" — no user-access, holidays, delegation, checklist, pc, meeting
       if (roleAll === "company") {
         return allTabs.filter(
           (t) =>
             t.id !== "user-access" &&
+            !SETTINGS_IDS.includes(t.id) &&
             t.id !== "holidays" &&
             t.id !== "meeting" &&
             t.id !== "delegation-form" &&
@@ -297,6 +306,7 @@ const handleCompanyPermissions = (userData) => {
       return allTabs.filter(
         (t) =>
           t.id !== "user-access" &&
+          !SETTINGS_IDS.includes(t.id) &&
           t.id !== "holidays" &&
           t.id !== "system-approvals" &&
           (t.id !== "assign-tester" || roleAll === "hod")
@@ -307,6 +317,10 @@ const handleCompanyPermissions = (userData) => {
     const isEmployee = role === "employee"
 
     const visibleTabs = allTabs.filter(tab => {
+      // Settings pages: admin / superadmin only
+      if (tab.id === "add-user" || tab.id === "add-company") {
+        return role === "admin" || role === "superadmin"
+      }
       // Company accounts always get their systems page
       if (tab.id === "company-systems" || tab.id === "company-profile") return true
       // ...plus the AI consultant and Troubleshoot pages
@@ -469,6 +483,7 @@ const handleCompanyPermissions = (userData) => {
       setChecklistOpen(true)
       setDelegationOpen(true)
     }
+    if (settingsChildIds.includes(activeTab)) setSettingsOpen(true)
     if (
       orderChildIdsAll.includes(activeTab) ||
       activeTab === "company-systems" ||
@@ -627,8 +642,11 @@ const handleCompanyPermissions = (userData) => {
             const tasksChildren = visibleTabs.filter((t) =>
               tasksChildIds.includes(t.id)
             )
+            const settingsChildren = visibleTabs.filter((t) => settingsChildIds.includes(t.id))
+            const settingsActive = settingsChildIds.includes(activeTab)
             const topLevelTabs = visibleTabs.filter(
               (t) =>
+                !settingsChildIds.includes(t.id) &&
                 !allChecklistIds.includes(t.id) &&
                 !tasksChildIds.includes(t.id) &&
                 !orderChildIds.includes(t.id)
@@ -706,6 +724,7 @@ const handleCompanyPermissions = (userData) => {
                   type="button"
                   onClick={() => {
                     setTasksOpen((o) => !o)
+                    setSettingsOpen(false)
                     setChecklistOpen(false)
                     setDelegationOpen(false)
                     setOrderOpen(false)
@@ -736,6 +755,7 @@ const handleCompanyPermissions = (userData) => {
                   type="button"
                   onClick={() => {
                     setChecklistOpen((o) => !o)
+                    setSettingsOpen(false)
                     setTasksOpen(false)
                     setDelegationOpen(false)
                     setOrderOpen(false)
@@ -770,6 +790,7 @@ const handleCompanyPermissions = (userData) => {
                   type="button"
                   onClick={() => {
                     setOrderOpen((o) => !o)
+                    setSettingsOpen(false)
                     setTasksOpen(false)
                     setChecklistOpen(false)
                     setDelegationOpen(false)
@@ -801,6 +822,37 @@ const handleCompanyPermissions = (userData) => {
               </div>
             )
 
+            const renderSettingsGroup = () => (
+              <div key="settings-group" className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSettingsOpen((o) => !o)
+                    setTasksOpen(false)
+                    setChecklistOpen(false)
+                    setDelegationOpen(false)
+                    setOrderOpen(false)
+                  }}
+                  className={groupBtnClass(settingsActive)}
+                >
+                  <Settings className="w-5 h-5 flex-shrink-0" />
+                  <span className="font-medium text-[14px] leading-snug min-w-0 flex-1 whitespace-nowrap">
+                    Settings
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 flex-shrink-0 text-gray-400 transition-transform ${
+                      settingsOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                {settingsOpen && (
+                  <div className="ml-3 space-y-1 pl-2">
+                    {settingsChildren.map((child) => renderTabBtn(child, { nested: true }))}
+                  </div>
+                )}
+              </div>
+            )
+
             // Order: pc-page, overview, Tasks group, Checklist & Delegation group, Order group, rest, meeting
             const ordered = []
             const used = new Set()
@@ -819,6 +871,7 @@ const handleCompanyPermissions = (userData) => {
             topLevelTabs.forEach((tab) => {
               if (tab.id !== "meeting" && !used.has(tab.id)) ordered.push(renderTabBtn(tab))
             })
+            if (settingsChildren.length > 0) ordered.push(renderSettingsGroup())
             pushTab("meeting")
             return ordered
           })()}

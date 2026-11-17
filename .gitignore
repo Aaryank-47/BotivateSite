@@ -11,18 +11,79 @@ dist-ssr/
 .env.*
 !.env.example
 
-# Logs / OS
+# Logs / OS / Temp
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+sed*
 .DS_Store
 Thumbs.db
 
-# Editor
+# Editor & AI assistants
 .vscode/*
 !.vscode/extensions.json
 .idea/
+.claude/
+.cursor/
+.windsurf/
 
 # Misc
 *.zip
 cmp-logo.zip
+
+backup_snapshot/
+
+# Migration / ETL scripts & artifacts (local only)
+__chg.mjs
+__diff.mjs
+__prodro.mjs
+__new_*.json
+audit_profiler.js
+create_backup.js
+etl_dry_run_plan.json
+etl_run_summary.json
+execute_etl_migration.js
+fix_completed_by_actual3.js
+incremental_sync.js
+migrate_modern_to_prod.mjs
+migration_audit_report.json
+migration_common.js
+migration_success_report.json
+pc_tmp.mjs
+post_migration_resync.sql
+prod_fix_permissions.sql
+prod_fix_task_no.sql
+prod_install_functions.sql
+prod_sync_legacy_to_modern.mjs
+reconcile_counts.mjs
+verify_migration.js
+wipe_safety_review.js
+wipe_target_tables.js
+
+# One-off DB clone / cleanup tooling and its outputs (local only)
+clone_prod_to_test.mjs
+clone_post_sequences.sql
+chetan_merge_log_*.json
+deactivate_nonmaster_log_*.json
+sync_apply_log_*.json
+users_cleanup_plan.csv
+users_usernames_list.csv
+*.csv
+sync_legacy_prod_to_test.mjs
+migration_*.sql
+fix_*.js
+fix_*.sql
+cleanup_prod_users.mjs
+cleanup_*.mjs
+review_users_cleanup/
+review_*/
+
+# Debug screenshots and Playwright scratch scripts (local only)
+/*.png
+__pw_*.cjs

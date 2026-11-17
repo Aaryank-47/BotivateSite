@@ -124,7 +124,7 @@ export const fetchTeamsForHod = async (hodId) => {
     .from("teams")
     .select(`
       id, name, team_type, description, is_active, hod_id,
-      team_members ( id, user_id, users ( id, name, username, role ) )
+      team_members ( id, user_id, users ( id, name, username, role, is_active ) )
     `)
     .eq("hod_id", hodId)
     .eq("is_active", true)
@@ -177,6 +177,54 @@ export const fetchTakenFromUsers = async (excludeUserId = null) => {
   return rows.filter((u) => String(u.id) !== String(excludeUserId));
 };
 
+/**
+ * Options for the "Taken From" box: names of admin-role users + every name already stored in
+ * user_tasks.taken_from (client-side people typed earlier). One entry per person (case/space-insensitive),
+ * sorted A-Z. Returns [{ name }].
+ */
+export const fetchTakenFromNames = async (excludeUserId = null) => {
+  // only users with the admin role (employees are NOT listed) + names already stored in taken_from
+  const { data: admins, error: adminErr } = await supabase
+    .from("users")
+    .select("id, name, username")
+    .eq("is_active", true)
+    .eq("role", "admin");
+  if (adminErr) throw adminErr;
+  const users = (admins || []).filter((u) => !excludeUserId || String(u.id) !== String(excludeUserId));
+  const stored = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("user_tasks")
+      .select("taken_from")
+      .not("taken_from", "is", null)
+      .order("id", { ascending: true })
+      .range(from, from + 999);
+    if (error) throw error;
+    stored.push(...(data || []).map((r) => r.taken_from));
+    if (!data || data.length < 1000) break;
+  }
+  const seen = new Map();
+  [...users.map((u) => u.name || u.username), ...stored].forEach((raw) => {
+    const name = String(raw ?? "").replace(/\s+/g, " ").trim();
+    if (!name) return;
+    const key = name.toLowerCase();
+    if (!seen.has(key)) seen.set(key, name);
+  });
+  return [...seen.values()]
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
+    .map((name) => ({ name }));
+};
+
+/**
+ * Name of whoever posted a task. user_tasks.posted_by is plain text (the name);
+ * task_subtasks.posted_by is still a user id, joined as posted_by_user.
+ */
+export const postedByName = (t) => {
+  if (t?.posted_by_user?.name) return t.posted_by_user.name;
+  const v = typeof t?.posted_by === "string" ? t.posted_by.trim() : "";
+  return v && !/^\d+$/.test(v) ? v : "";
+};
+
 const USER_TASKS_SELECT = `
   id, task_no, given_date, posted_by, taken_from, company_id, type_of_work,
   expected_date_to_close, description_of_work, system_id, link_of_system,
@@ -185,8 +233,6 @@ const USER_TASKS_SELECT = `
   status, assigned_at, approved_by, approved_at, completed_at, created_at, updated_at,
   company:users!user_tasks_company_id_fkey ( id, name, company_name ),
   systems ( id, name ),
-  posted_by_user:users!user_tasks_posted_by_fkey ( id, name ),
-  taken_from_user:users!user_tasks_taken_from_fkey ( id, name, username ),
   assigned_member_1_user:users!user_tasks_assigned_member_1_fkey ( id, name, username ),
   assigned_member_2_user:users!user_tasks_assigned_member_2_fkey ( id, name, username ),
   assigned_by_user:users!user_tasks_assigned_by_fkey ( id, name )
@@ -202,6 +248,9 @@ const USER_TASKS_SELECT = `
  */
 export const subtaskSelect = (select) => {
   let res = select.replaceAll("user_tasks_", "task_subtasks_");
+  // task_subtasks has made_by (user id, FK) instead of taken_from (text) -> join it for the name
+  res = res.replace(/\btaken_from\b/, "made_by");
+  res = `${res}, made_by_user:users!task_subtasks_made_by_fkey ( id, name, username ), posted_by_user:users!task_subtasks_posted_by_fkey ( id, name )`;
   if (!res.includes("relation_type")) {
     res = `relation_type, issue_remarks, ${res}`;
   }
@@ -211,6 +260,8 @@ export const subtaskSelect = (select) => {
 /** Marks a task_subtasks row so the task screens treat it like the old rework rows. */
 export const asSubtask = (row) => ({
   ...row,
+  // same field the main tasks use: sub-task's made_by user name
+  taken_from: row.made_by_user?.name || row.made_by_user?.username || "",
   is_subtask: true,
   is_testing_issue: row.relation_type === "Testing Issue" || row.is_testing_issue !== false,
   relation_type: row.relation_type || "Testing Issue",
@@ -513,11 +564,22 @@ export const convertCmpTaskToUserTask = async ({
   const member1 = assignedMember1Id ? Number(assignedMember1Id) : null;
   const now = new Date().toISOString();
 
+  // user_tasks.taken_from stores the person's NAME (text), not a user id
+  const { data: takenFromRow, error: takenFromErr } = await supabase
+    .from("users").select("name, username").eq("id", Number(takenFromUserId)).maybeSingle();
+  if (takenFromErr) throw takenFromErr;
+  const takenFromName = takenFromRow?.name || takenFromRow?.username;
+  if (!takenFromName) throw new Error("Taken From person not found.");
+  // user_tasks.posted_by is plain text (the converter's name)
+  const { data: converterRow } = await supabase
+    .from("users").select("name, username").eq("id", Number(assignedByUserId)).maybeSingle();
+  const postedByText = converterRow?.name || converterRow?.username || String(assignedByUserId);
+
   // expected_date_to_close is auto-extended inside createEmplTask (Sundays + holidays)
   const userTaskPayload = {
     given_date: now,
-    posted_by: Number(assignedByUserId),
-    taken_from: Number(takenFromUserId),
+    posted_by: postedByText,
+    taken_from: takenFromName,
     company_id: Number(cmpTask.company_id),
     type_of_work: typeOfWork,
     expected_date_to_close: new Date(expectedDateToClose).toISOString(),
@@ -682,6 +744,63 @@ export const setUserActive = async (id, isActive) => {
     .update({ is_active: !!isActive })
     .eq("id", id)
     .select("id, is_active")
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// ---------------------------------------------------------------------------
+// Settings > Add User / Add Company — accounts with profile details.
+// Needs migration_user_company_details.sql (phone, email, department, company info columns).
+// ---------------------------------------------------------------------------
+const ACCOUNT_TEXT_FIELDS = [
+  "phone", "email", "department", "contact_person",
+  "address", "city", "state", "gst_number", "website", "industry",
+];
+
+const accountRow = (p) => {
+  const row = {};
+  if (p.username !== undefined) row.username = String(p.username).trim();
+  if (p.password) row.password = String(p.password);
+  if (p.name !== undefined) row.name = String(p.name).trim();
+  if (p.role !== undefined) row.role = p.role;
+  if (p.role === "company") row.company_name = String(p.company_name || p.name || "").trim();
+  else if (p.role) row.company_name = null;
+  if (p.permission !== undefined) row.permission = p.permission;
+  if (p.is_active !== undefined) row.is_active = !!p.is_active;
+  ACCOUNT_TEXT_FIELDS.forEach((f) => {
+    if (p[f] !== undefined) row[f] = String(p[f] ?? "").trim() || null;
+  });
+  return row;
+};
+
+export const fetchAccounts = async (roles) => {
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .in("role", roles)
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data || [];
+};
+
+export const createAccount = async (payload) => {
+  const row = accountRow(payload);
+  if (!row.username) throw new Error("Username is required.");
+  if (!row.password) throw new Error("Password is required.");
+  if (!row.name) throw new Error("Name is required.");
+  const { data, error } = await supabase.from("users").insert([row]).select("*").single();
+  if (error) throw error;
+  return data;
+};
+
+export const updateAccount = async (id, payload) => {
+  if (!id) throw new Error("User id is required.");
+  const { data, error } = await supabase
+    .from("users")
+    .update(accountRow(payload))
+    .eq("id", id)
+    .select("*")
     .single();
   if (error) throw error;
   return data;
@@ -1983,12 +2102,19 @@ export const approveSystemRequest = async (req, { approverId, remarks }) => {
     description: req.description,
   });
   const team = await fetchAssignableMembers();
-  const takenFrom = team.find((m) => Number(m.id) !== Number(approverId))?.id || 1;
+  const takenFromMember = team.find((m) => Number(m.id) !== Number(approverId));
+  const takenFrom = takenFromMember?.name || takenFromMember?.username || "Admin";
+  const approverRow = team.find((m) => Number(m.id) === Number(approverId));
+  let approverName = approverRow?.name || approverRow?.username;
+  if (!approverName) {
+    const { data: ur } = await supabase.from("users").select("name, username").eq("id", Number(approverId)).maybeSingle();
+    approverName = ur?.name || ur?.username || "Admin";
+  }
   const now = new Date();
   await createEmplTask({
     given_date: now.toISOString(),
-    posted_by: Number(approverId),
-    taken_from: Number(takenFrom),
+    posted_by: approverName,
+    taken_from: takenFrom,
     company_id: Number(req.company_id),
     type_of_work: "System Actual",
     expected_date_to_close: new Date(req.needed_by || now.getTime() + 7 * 24 * 3600 * 1000).toISOString(),

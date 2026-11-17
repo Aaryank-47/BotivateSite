@@ -34,6 +34,8 @@ import DashboardCharts from "../DashboardCharts";
 import AiHelperPage from "../AiHelper"; // Adjust the path if needed
 import ReportsPage from "../Report";
 import UserAccess from "../UserAccess";
+import AddUser from "../Settings/AddUser";
+import AddCompany from "../Settings/AddCompany";
 import HolidaysPage from "../Holidays";
 import DelegationForm from "../DelegationForm";
 import DelegationTasks from "../DelegationTasks";
@@ -379,6 +381,10 @@ export default function AdminDashboard({
         return <ApprovalForDelivery userFilterData={userFilterData} />;
       case "user-access":
         return <UserAccess userRole={userRole} />;
+      case "add-user":
+        return <AddUser />;
+      case "add-company":
+        return <AddCompany />;
       case "holidays":
         return (
           <HolidaysPage

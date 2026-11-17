@@ -252,24 +252,24 @@ export default function AdminForm({
               <label className="block mb-1 text-sm font-medium text-gray-700">
                 Taken From <span className="text-red-500">*</span>
               </label>
-              <Select
+              <Combobox
                 name="takenFrom"
-                value={formData.takenFrom}
-                onChange={handleInputChange}
+                value={String(formData.takenFrom || "")}
+                displayValue={String(formData.takenFrom || "")}
+                options={takenFromUsers.map((u) => ({
+                  value: u.name || u.username,
+                  label: u.name || u.username,
+                }))}
+                // Taken From is stored as plain text: pick a team member or type a client-side person's name
+                onChange={(e) =>
+                  handleInputChange({
+                    target: { name: "takenFrom", value: String(e.target.value ?? "") },
+                  })
+                }
                 disabled={isLoadingDropdowns}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.takenFrom ? "border-red-300" : "border-gray-300"
-                } ${isLoadingDropdowns ? "bg-gray-100" : ""}`}
-              >
-                <option value="">
-                  {isLoadingDropdowns ? "Loading..." : "Select person"}
-                </option>
-                {takenFromUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name || u.username}
-                  </option>
-                ))}
-              </Select>
+                error={!!errors.takenFrom}
+                placeholder={isLoadingDropdowns ? "Loading..." : "Pick team member or type client person name"}
+              />
               {errors.takenFrom && (
                 <p className="mt-1 text-sm text-red-600">{errors.takenFrom}</p>
               )}
