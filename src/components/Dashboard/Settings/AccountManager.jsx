@@ -5,6 +5,11 @@ import { createPortal } from "react-dom";
 import {
   Eye, EyeOff, Save, X, Plus, Search, Pencil, RefreshCw,
   CheckCircle2, AlertCircle, ToggleLeft, ToggleRight,
+  LayoutGrid, BarChart3, FileText, Clock, CheckCircle,
+  Settings, Bot, Sparkles, UserPlus, ClipboardList,
+  LayoutList, ClipboardCheck, FlaskConical, ShieldCheck,
+  Package, CalendarCheck, CalendarDays, Send, FileCheck2,
+  Building2, Lock,
 } from "lucide-react";
 import {
   fetchAccounts,
@@ -16,24 +21,286 @@ import {
 
 // ---- default sidebar access per role --------------------------------------
 const DEFAULT_PERMISSIONS = {
-  employee: { dashboard: true, "assign-task": true, "pending-tasks": true, "pc-page": true, tester: true },
+  employee: {
+    dashboard: true,
+    "assign-task": true,
+    "pending-tasks": true,
+    "completed-tasks": true,
+    "pc-page": true,
+    tester: true,
+    meeting: true,
+    holidays: true,
+  },
   hod: {
-    dashboard: true, "assign-task": true, "pending-tasks": true, "tasks-table": true,
-    "delegation-form": true, "delegation-tasks": true, "pc-page": true,
-    "assign-tester": true, tester: true, "approval-delivery": true,
+    dashboard: true,
+    "assign-task": true,
+    "pending-tasks": true,
+    "completed-tasks": true,
+    "tasks-table": true,
+    "delegation-form": true,
+    "delegation-tasks": true,
+    "pc-page": true,
+    "assign-tester": true,
+    tester: true,
+    "approval-delivery": true,
+    "order-list": true,
+    meeting: true,
+    holidays: true,
   },
   admin: {
-    dashboard: true, "assign-task": true, "tasks-table": true, "pending-tasks": true,
-    "completed-tasks": true, troubleshoot: true, "ai-helper": true, reports: true,
-    "delegation-form": true, "delegation-tasks": true, "pc-page": true,
-    "assign-tester": true, tester: true, "approval-delivery": true,
+    dashboard: true,
+    "assign-task": true,
+    "tasks-table": true,
+    "pending-tasks": true,
+    "completed-tasks": true,
+    "order-list": true,
+    troubleshoot: true,
+    "ai-helper": true,
+    reports: true,
+    "delegation-form": true,
+    "delegation-tasks": true,
+    "pc-page": true,
+    "assign-tester": true,
+    tester: true,
+    "approval-delivery": true,
+    "inform-customer": true,
+    "checklist-assign": true,
+    "checklist-pending": true,
+    meeting: true,
+    holidays: true,
+    "add-user": true,
+    "add-company": true,
   },
-  company: { dashboard: true, "assign-task": true, "pending-tasks": true },
+  company: {
+    dashboard: true,
+    "company-systems": true,
+    "company-tasks": true,
+    troubleshoot: true,
+    "ai-helper": true,
+    "company-profile": true,
+  },
+};
+
+const PAGE_META = {
+  dashboard: {
+    icon: BarChart3,
+    blurb: "Overview & key statistics",
+    tint: "from-sky-500/15 to-blue-500/5",
+    ring: "ring-sky-200",
+    iconBg: "bg-sky-100 text-sky-600",
+  },
+  "assign-task": {
+    icon: Plus,
+    blurb: "Create tasks / tickets",
+    tint: "from-violet-500/15 to-purple-500/5",
+    ring: "ring-violet-200",
+    iconBg: "bg-violet-100 text-violet-600",
+  },
+  "tasks-table": {
+    icon: FileText,
+    blurb: "Internal task desk & work logs",
+    tint: "from-indigo-500/15 to-blue-500/5",
+    ring: "ring-indigo-200",
+    iconBg: "bg-indigo-100 text-indigo-600",
+  },
+  "pending-tasks": {
+    icon: Clock,
+    blurb: "Open work queue & pending list",
+    tint: "from-amber-500/15 to-orange-500/5",
+    ring: "ring-amber-200",
+    iconBg: "bg-amber-100 text-amber-600",
+  },
+  "completed-tasks": {
+    icon: CheckCircle,
+    blurb: "Finished work & completion history",
+    tint: "from-emerald-500/15 to-green-500/5",
+    ring: "ring-emerald-200",
+    iconBg: "bg-emerald-100 text-emerald-600",
+  },
+  troubleshoot: {
+    icon: Settings,
+    blurb: "Issue tracker & bug reporting",
+    tint: "from-slate-500/15 to-gray-500/5",
+    ring: "ring-slate-200",
+    iconBg: "bg-slate-100 text-slate-600",
+  },
+  "ai-helper": {
+    icon: Bot,
+    blurb: "AI consultant & smart assistant",
+    tint: "from-rose-500/15 to-red-500/5",
+    ring: "ring-rose-200",
+    iconBg: "bg-rose-100 text-rose-600",
+  },
+  reports: {
+    icon: Sparkles,
+    blurb: "Analytics, reports & performance",
+    tint: "from-blue-500/15 to-indigo-500/5",
+    ring: "ring-blue-200",
+    iconBg: "bg-blue-100 text-blue-600",
+  },
+  "delegation-form": {
+    icon: UserPlus,
+    blurb: "Delegate tasks to team members",
+    tint: "from-indigo-500/15 to-violet-500/5",
+    ring: "ring-indigo-200",
+    iconBg: "bg-indigo-100 text-indigo-600",
+  },
+  "delegation-tasks": {
+    icon: ClipboardList,
+    blurb: "Track & manage delegated work",
+    tint: "from-violet-500/15 to-fuchsia-500/5",
+    ring: "ring-violet-200",
+    iconBg: "bg-violet-100 text-violet-600",
+  },
+  "pc-page": {
+    icon: LayoutList,
+    blurb: "Pending party & delegation desk",
+    tint: "from-sky-500/15 to-cyan-500/5",
+    ring: "ring-sky-200",
+    iconBg: "bg-sky-100 text-sky-600",
+  },
+  "assign-tester": {
+    icon: ClipboardCheck,
+    blurb: "Assign a tester to delivered work",
+    tint: "from-teal-500/15 to-teal-500/5",
+    ring: "ring-teal-200",
+    iconBg: "bg-teal-100 text-teal-600",
+  },
+  tester: {
+    icon: FlaskConical,
+    blurb: "Test & verify delivered systems",
+    tint: "from-cyan-500/15 to-cyan-500/5",
+    ring: "ring-cyan-200",
+    iconBg: "bg-cyan-100 text-cyan-600",
+  },
+  "approval-delivery": {
+    icon: ShieldCheck,
+    blurb: "Final review & delivery approval",
+    tint: "from-emerald-500/15 to-emerald-500/5",
+    ring: "ring-emerald-200",
+    iconBg: "bg-emerald-100 text-emerald-600",
+  },
+  "checklist-assign": {
+    icon: UserPlus,
+    blurb: "Assign standard checklist tasks",
+    tint: "from-violet-500/15 to-violet-500/5",
+    ring: "ring-violet-200",
+    iconBg: "bg-violet-100 text-violet-600",
+  },
+  "checklist-pending": {
+    icon: ClipboardList,
+    blurb: "Pending checklist & routine duties",
+    tint: "from-amber-500/15 to-amber-500/5",
+    ring: "ring-amber-200",
+    iconBg: "bg-amber-100 text-amber-600",
+  },
+  holidays: {
+    icon: CalendarDays,
+    blurb: "Company holiday calendar & leave list",
+    tint: "from-rose-500/15 to-rose-500/5",
+    ring: "ring-rose-200",
+    iconBg: "bg-rose-100 text-rose-600",
+  },
+  "order-list": {
+    icon: Package,
+    blurb: "View orders and client systems",
+    tint: "from-amber-500/15 to-orange-500/5",
+    ring: "ring-amber-200",
+    iconBg: "bg-amber-100 text-amber-600",
+  },
+  "inform-customer": {
+    icon: Send,
+    blurb: "Client notifications & delivery alerts",
+    tint: "from-indigo-500/15 to-blue-500/5",
+    ring: "ring-indigo-200",
+    iconBg: "bg-indigo-100 text-indigo-600",
+  },
+  "system-approvals": {
+    icon: FileCheck2,
+    blurb: "Review & approve requested systems",
+    tint: "from-emerald-500/15 to-green-500/5",
+    ring: "ring-emerald-200",
+    iconBg: "bg-emerald-100 text-emerald-600",
+  },
+  meeting: {
+    icon: CalendarCheck,
+    blurb: "Employee training & meeting SOP",
+    tint: "from-purple-500/15 to-indigo-500/5",
+    ring: "ring-purple-200",
+    iconBg: "bg-purple-100 text-purple-600",
+  },
+  "company-tasks": {
+    icon: CheckCircle,
+    blurb: "All company tasks with status filter",
+    tint: "from-emerald-500/15 to-green-500/5",
+    ring: "ring-emerald-200",
+    iconBg: "bg-emerald-100 text-emerald-600",
+  },
+  "company-systems": {
+    icon: Building2,
+    blurb: "Client system modules and task tree",
+    tint: "from-blue-500/15 to-sky-500/5",
+    ring: "ring-blue-200",
+    iconBg: "bg-blue-100 text-blue-600",
+  },
+  "company-profile": {
+    icon: Building2,
+    blurb: "Company profile, credentials & details",
+    tint: "from-slate-500/15 to-gray-500/5",
+    ring: "ring-slate-200",
+    iconBg: "bg-slate-100 text-slate-600",
+  },
+  "add-user": {
+    icon: UserPlus,
+    blurb: "Create & manage internal users",
+    tint: "from-violet-500/15 to-purple-500/5",
+    ring: "ring-violet-200",
+    iconBg: "bg-violet-100 text-violet-600",
+  },
+  "add-company": {
+    icon: Building2,
+    blurb: "Create & manage client companies",
+    tint: "from-amber-500/15 to-yellow-500/5",
+    ring: "ring-amber-200",
+    iconBg: "bg-amber-100 text-amber-600",
+  },
 };
 
 // pages that make sense to offer a company account
 const COMPANY_PAGES = new Set([
-  "dashboard", "assign-task", "pending-tasks", "completed-tasks", "troubleshoot", "ai-helper", "reports",
+  "dashboard",
+  "company-systems",
+  "company-tasks",
+  "company-profile",
+  "troubleshoot",
+  "ai-helper",
+]);
+
+// pages that make sense to offer an internal user (employee / hod / admin)
+const INTERNAL_USER_PAGES = new Set([
+  "dashboard",
+  "pc-page",
+  "assign-task",
+  "tasks-table",
+  "pending-tasks",
+  "completed-tasks",
+  "order-list",
+  "assign-tester",
+  "tester",
+  "approval-delivery",
+  "inform-customer",
+  "system-approvals",
+  "troubleshoot",
+  "ai-helper",
+  "reports",
+  "delegation-form",
+  "delegation-tasks",
+  "checklist-assign",
+  "checklist-pending",
+  "meeting",
+  "holidays",
+  "add-user",
+  "add-company",
 ]);
 
 const DEPARTMENTS = ["Development", "Testing", "Sales", "Support", "Accounts", "HR", "Operations", "Management"];
@@ -80,15 +347,31 @@ function AccountModal({ kind, mode, initial, editingId, existing, onClose, onSav
   const [form, setForm] = useState(initial);
   const [keys, setKeys] = useState(initial.__keys);
   const [tab, setTab] = useState("details");
+  const [pageSearch, setPageSearch] = useState("");
   const [showPw, setShowPw] = useState(mode === "create");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   const pages = useMemo(
-    () => SIDEBAR_PAGE_OPTIONS.filter((p) => (isCompany ? COMPANY_PAGES.has(p.key) : p.key !== "user-access")),
+    () =>
+      SIDEBAR_PAGE_OPTIONS.filter((p) =>
+        isCompany ? COMPANY_PAGES.has(p.key) : INTERNAL_USER_PAGES.has(p.key)
+      ),
     [isCompany]
   );
+
+  const filteredPages = useMemo(() => {
+    const q = pageSearch.trim().toLowerCase();
+    if (!q) return pages;
+    return pages.filter((p) => {
+      const meta = PAGE_META[p.key] || {};
+      const lbl = (p.label || "").toLowerCase();
+      const blurb = (meta.blurb || "").toLowerCase();
+      const key = (p.key || "").toLowerCase();
+      return lbl.includes(q) || blurb.includes(q) || key.includes(q);
+    });
+  }, [pages, pageSearch]);
 
   const onRoleChange = (role) => {
     set("role", role);
@@ -157,7 +440,7 @@ function AccountModal({ kind, mode, initial, editingId, existing, onClose, onSav
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-black/40" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <form onSubmit={submit} className="bg-white w-full max-w-2xl max-h-[92vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <form onSubmit={submit} className="bg-white w-full max-w-3xl max-h-[92vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900">
             {mode === "create" ? `Add ${roleLabel}` : `Edit ${roleLabel}`}
@@ -168,7 +451,7 @@ function AccountModal({ kind, mode, initial, editingId, existing, onClose, onSav
         </div>
 
         <div className="flex gap-1 px-5 pt-3 border-b border-gray-100">
-          {[["details", "Details"], ["access", `Page Access (${keys.length || 1})`]].map(([id, label]) => (
+          {[["details", "Details"], ["access", `Page Management (${keys.length || 1})`]].map(([id, label]) => (
             <button
               key={id}
               type="button"
@@ -307,40 +590,146 @@ function AccountModal({ kind, mode, initial, editingId, existing, onClose, onSav
           )}
 
           {tab === "access" && (
-            <>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-500">Pages this account can open in the sidebar.</p>
-                <div className="flex gap-2 text-xs font-semibold">
-                  <button type="button" className="text-indigo-600 hover:underline"
-                    onClick={() => setKeys(pages.map((p) => p.key))}>Select all</button>
-                  <button type="button" className="text-gray-500 hover:underline"
-                    onClick={() => setKeys(permKeys(DEFAULT_PERMISSIONS[form.role]))}>Reset to default</button>
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                    <LayoutGrid className="w-4 h-4 text-indigo-600" />
+                    Sidebar Page Management
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Choose which pages this {isCompany ? "company" : "user"} can open in the dashboard sidebar.
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  {keys.length || 1} / {pages.length} pages enabled
+                </span>
+              </div>
+
+              {/* Quick actions & Search bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+                <div className="relative flex-1 min-w-[200px] max-w-xs">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={pageSearch}
+                    onChange={(e) => setPageSearch(e.target.value)}
+                    placeholder="Search pages..."
+                    className="w-full pl-9 pr-7 py-1.5 text-xs border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-400 transition placeholder:text-gray-400"
+                  />
+                  {pageSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setPageSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 text-xs font-semibold">
+                  <button
+                    type="button"
+                    className="px-2.5 py-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 transition"
+                    onClick={() => setKeys(pages.map((p) => p.key))}
+                  >
+                    Select all
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2.5 py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition"
+                    onClick={() => setKeys(["dashboard"])}
+                  >
+                    Deselect all
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2.5 py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition"
+                    onClick={() => setKeys(permKeys(DEFAULT_PERMISSIONS[form.role] || DEFAULT_PERMISSIONS.employee))}
+                  >
+                    Reset default
+                  </button>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {pages.map((p) => {
-                  const on = p.key === "dashboard" || keys.includes(p.key);
+
+              {/* Cards Grid identical to User Access page */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                {filteredPages.map((page) => {
+                  const meta = PAGE_META[page.key] || PAGE_META.dashboard;
+                  const Icon = meta.icon;
+                  const isDash = page.key === "dashboard";
+                  const on = isDash || keys.includes(page.key);
+                  const disabled = isDash;
+
                   return (
                     <button
-                      key={p.key}
+                      key={page.key}
                       type="button"
-                      onClick={() => toggleKey(p.key)}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left text-sm transition ${
-                        on ? "bg-indigo-50 border-indigo-200 text-indigo-800" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                      } ${p.key === "dashboard" ? "cursor-default" : ""}`}
+                      disabled={disabled}
+                      onClick={() => toggleKey(page.key)}
+                      className={`group relative text-left rounded-2xl border p-3.5 transition-all duration-200 ${
+                        on
+                          ? `bg-gradient-to-br ${meta.tint} border-transparent ring-1 ${meta.ring} shadow-sm`
+                          : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                      } ${
+                        disabled
+                          ? "cursor-default opacity-90"
+                          : "cursor-pointer active:scale-[0.98]"
+                      }`}
                     >
-                      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${on ? "bg-indigo-600 border-indigo-600" : "border-gray-300"}`}>
-                        {on && <CheckCircle2 className="w-3 h-3 text-white" />}
-                      </span>
-                      {p.label}
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition ${
+                            on ? meta.iconBg : "bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-1 pt-0.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <p
+                              className={`text-sm font-semibold truncate ${
+                                on ? "text-gray-900" : "text-gray-600"
+                              }`}
+                            >
+                              {page.label}
+                            </p>
+                            <span
+                              className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition ${
+                                on
+                                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/30"
+                                  : "bg-gray-100 text-transparent ring-1 ring-gray-200"
+                              }`}
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">
+                            {meta.blurb}
+                          </p>
+                          {isDash && (
+                            <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider text-sky-600/90">
+                              Always on
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </button>
                   );
                 })}
               </div>
-              {form.role === "admin" && (
-                <p className="text-[12px] text-gray-400">Admins see all operational pages in the sidebar regardless of this list.</p>
+
+              {filteredPages.length === 0 && (
+                <div className="py-8 text-center text-sm text-gray-500">
+                  No pages found matching &ldquo;{pageSearch}&rdquo;.
+                </div>
               )}
-            </>
+
+              <p className="text-[11.5px] text-gray-400 pt-1">
+                Pages enabled above are saved directly in the user&apos;s database record (<code>permission</code> column) and will be displayed in their sidebar.
+              </p>
+            </div>
           )}
         </div>
 
@@ -413,10 +802,33 @@ export default function AccountManager({ kind, title, subtitle, icon: Icon }) {
 
   const openCreate = () => {
     const f = blankForm(kind);
-    setModal({ mode: "create", row: null, form: { ...f, __keys: permKeys(DEFAULT_PERMISSIONS[f.role]) } });
+    const defPerm = DEFAULT_PERMISSIONS[f.role] || DEFAULT_PERMISSIONS.employee;
+    setModal({ mode: "create", row: null, form: { ...f, __keys: permKeys(defPerm) } });
   };
   const openEdit = (u) => {
-    const keys = u.permission?.all === true ? SIDEBAR_PAGE_OPTIONS.map((p) => p.key) : permKeys(u.permission);
+    let keys = [];
+    let perm = u.permission;
+    if (typeof perm === "string") {
+      try {
+        perm = JSON.parse(perm);
+      } catch {
+        /* ignore */
+      }
+    }
+    if (perm && typeof perm === "object") {
+      if (perm.all === true) {
+        keys = (isCompany
+          ? SIDEBAR_PAGE_OPTIONS.filter((p) => COMPANY_PAGES.has(p.key))
+          : SIDEBAR_PAGE_OPTIONS.filter((p) => INTERNAL_USER_PAGES.has(p.key))
+        ).map((p) => p.key);
+      } else {
+        keys = permKeys(perm);
+      }
+    }
+    if (keys.length === 0) {
+      const defPerm = DEFAULT_PERMISSIONS[u.role] || DEFAULT_PERMISSIONS.employee;
+      keys = permKeys(defPerm);
+    }
     setModal({ mode: "edit", row: u, form: { ...fromRow(u), __keys: keys } });
   };
 
@@ -432,6 +844,20 @@ export default function AccountManager({ kind, title, subtitle, icon: Icon }) {
   const onSaved = (saved, mode) => {
     setModal(null);
     setToast(`${saved.name} ${mode === "create" ? "created" : "updated"}.`);
+    // If updated user is the current session user, sync local session immediately
+    try {
+      const currentSession = JSON.parse(sessionStorage.getItem("userSession") || "{}");
+      if (currentSession.userId === saved.id || currentSession.username === saved.username) {
+        currentSession.permission = saved.permission;
+        currentSession.permissions = saved.permission;
+        const granted = Object.keys(saved.permission || {}).filter((k) => saved.permission[k] === true);
+        currentSession.pagination = saved.permission?.all === true ? "all" : granted;
+        sessionStorage.setItem("userSession", JSON.stringify(currentSession));
+        window.dispatchEvent(new CustomEvent("userSessionUpdated", { detail: currentSession }));
+      }
+    } catch {
+      /* ignore */
+    }
     load();
   };
 

@@ -101,13 +101,13 @@ export default function CompanyForm({
             />
           </div>
 
-          {/* Expected Date To Close */}
+          {/* Expected Date & Time To Close */}
           <div>
             <label className="block mb-1 text-sm font-medium text-gray-700">
-              Expected Date To Close
+              Expected Date &amp; Time To Close
             </label>
             <input
-              type="date"
+              type="datetime-local"
               name={isMain ? "expectedDate" : undefined}
               value={get("expectedDate") || ""}
               onChange={onChange("expectedDate")}
@@ -118,7 +118,7 @@ export default function CompanyForm({
           {/* System Name — clean dropdown + type */}
           <div>
             <label className="block mb-1 text-sm font-medium text-gray-700">
-              System Name
+              System Name {isMain && <span className="text-red-500">*</span>}
             </label>
             <Combobox
               name={isMain ? "systemName" : "systemName"}
@@ -134,6 +134,9 @@ export default function CompanyForm({
                 isLoadingSystems ? "Loading systems..." : "Select or type system name"
               }
             />
+            {isMain && errors.systemName && (
+              <p className="mt-1 text-sm text-red-600">{errors.systemName}</p>
+            )}
           </div>
 
           {/* Link Of System (swapped with Priority) */}

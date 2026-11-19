@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import Modal, { Field, ReadOnlyField, inputClass } from "../shared/Modal";
-import { completeTaskWithDelivery, postponeTask } from "../../../services/schemaApi";
+import { completeTaskWithDelivery, completeTaskSimple, postponeTask, ORDER_SYSTEM_WORK_TYPES } from "../../../services/schemaApi";
 import Select from "../shared/Select";
 import { requestCountsRefresh } from "../../../utils/sidebarCounts";
 
@@ -11,6 +11,7 @@ import { requestCountsRefresh } from "../../../utils/sidebarCounts";
  * Pending  -> new expected delivery date + remarks, task stays in Pending.
  */
 export default function TaskUpdateModal({ task, userId, userName, onClose, onSaved }) {
+  const isSystemType = ORDER_SYSTEM_WORK_TYPES.includes(task.typeOfWork || task.type_of_work);
   const [status, setStatus] = useState("");
   const [systemLink, setSystemLink] = useState(task.linkOfSystem || "");
   const [githubLink, setGithubLink] = useState("");
@@ -25,9 +26,11 @@ export default function TaskUpdateModal({ task, userId, userName, onClose, onSav
     setError("");
     if (!status) return setError("Select a status.");
     if (status === "Complete") {
-      if (!systemLink.trim()) return setError("System Link is required.");
-      if (!loginId.trim()) return setError("Id is required.");
-      if (!password.trim()) return setError("Pass is required.");
+      if (isSystemType) {
+        if (!systemLink.trim()) return setError("System Link is required.");
+        if (!loginId.trim()) return setError("Id is required.");
+        if (!password.trim()) return setError("Pass is required.");
+      }
     } else {
       if (!expectedDate) return setError("Expected Delivery Date is required.");
       if (!remarks.trim()) return setError("Remarks are required.");
@@ -36,18 +39,26 @@ export default function TaskUpdateModal({ task, userId, userName, onClose, onSav
     setSaving(true);
     try {
       if (status === "Complete") {
-        await completeTaskWithDelivery({
-          task,
-          systemLink: systemLink.trim(),
-          githubLink: githubLink.trim(),
-          loginId: loginId.trim(),
-          password: password.trim(),
-          remarks: remarks.trim(),
-          madeByUserId: userId,
-          madeByName: userName,
-        });
-        // only a completed task leaves Pending (and joins Assign Tester); a postponed one stays counted
-        requestCountsRefresh({ "pending-tasks": -1, "assign-tester": 1 });
+        if (isSystemType) {
+          await completeTaskWithDelivery({
+            task,
+            systemLink: systemLink.trim(),
+            githubLink: githubLink.trim(),
+            loginId: loginId.trim(),
+            password: password.trim(),
+            remarks: remarks.trim(),
+            madeByUserId: userId,
+            madeByName: userName,
+          });
+          requestCountsRefresh({ "pending-tasks": -1, "assign-tester": 1 });
+        } else {
+          await completeTaskSimple({
+            taskId: task.id,
+            remarks: remarks.trim(),
+            madeByUserId: userId,
+          });
+          requestCountsRefresh({ "pending-tasks": -1 });
+        }
       } else {
         await postponeTask({
           taskId: task.id,
@@ -133,46 +144,50 @@ export default function TaskUpdateModal({ task, userId, userName, onClose, onSav
 
       {status === "Complete" && (
         <>
-          <Field full label="System Link" required>
-            <input
-              className={inputClass}
-              value={systemLink}
-              onChange={(e) => setSystemLink(e.target.value)}
-              placeholder="https://…"
-            />
-          </Field>
-          <Field full label="GitHub Link">
-            <input
-              className={inputClass}
-              value={githubLink}
-              onChange={(e) => setGithubLink(e.target.value)}
-              placeholder="https://github.com/…"
-            />
-          </Field>
-          {/* These are the delivered system's credentials, not the maker's own login:
-              keep browsers / password managers from auto-filling saved logins here. */}
-          <Field label="Id" required>
-            <input
-              className={inputClass}
-              name="delivered-system-id"
-              autoComplete="off"
-              data-lpignore="true"
-              data-1p-ignore="true"
-              value={loginId}
-              onChange={(e) => setLoginId(e.target.value)}
-            />
-          </Field>
-          <Field label="Pass" required>
-            <input
-              className={inputClass}
-              name="delivered-system-pass"
-              autoComplete="off"
-              data-lpignore="true"
-              data-1p-ignore="true"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </Field>
+          {isSystemType ? (
+            <>
+              <Field full label="System Link" required>
+                <input
+                  className={inputClass}
+                  value={systemLink}
+                  onChange={(e) => setSystemLink(e.target.value)}
+                  placeholder="https://…"
+                />
+              </Field>
+              <Field full label="GitHub Link">
+                <input
+                  className={inputClass}
+                  value={githubLink}
+                  onChange={(e) => setGithubLink(e.target.value)}
+                  placeholder="https://github.com/…"
+                />
+              </Field>
+              {/* These are the delivered system's credentials, not the maker's own login:
+                  keep browsers / password managers from auto-filling saved logins here. */}
+              <Field label="Id" required>
+                <input
+                  className={inputClass}
+                  name="delivered-system-id"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value)}
+                />
+              </Field>
+              <Field label="Pass" required>
+                <input
+                  className={inputClass}
+                  name="delivered-system-pass"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </Field>
+            </>
+          ) : null}
           <Field full label="Remarks">
             <textarea
               className={inputClass}

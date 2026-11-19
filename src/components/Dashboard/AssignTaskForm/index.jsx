@@ -282,6 +282,7 @@ export default function AssignTaskForm({
       if (!formData.expectedDate) newErrors.expectedDate = "Expected Date is required";
     } else {
       if (!formData.typeOfWork) newErrors.typeOfWork = "Type of Work is required";
+      if (!formData.systemName?.trim()) newErrors.systemName = "System Name is required";
       if (!formData.description) newErrors.description = "Description is required";
     }
 

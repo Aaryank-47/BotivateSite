@@ -60,8 +60,11 @@ export default function LoginModal({ isOpen, onClose, onLogin }) {
         throw new Error('Invalid username or password.');
       }
 
-      if (userRow.is_active === false) {
-        throw new Error('This account has been deactivated. Contact your administrator.');
+      // Inactive users can never sign in — mandatory for every role.
+      // Only an explicitly active account (is_active === true) is allowed
+      // through; false, null or an unset flag are all treated as inactive.
+      if (userRow.is_active !== true) {
+        throw new Error('This account is inactive. Contact your administrator.');
       }
 
       // Map the DB role onto the role strings the rest of the app expects:
@@ -104,9 +107,18 @@ export default function LoginModal({ isOpen, onClose, onLogin }) {
         localStorage.setItem('company_name', companyData.companyName);
       }
 
-      const sessionData = { role: appRole, username: userRow.username, pagination, filterData, companyData };
+      const sessionData = {
+        role: appRole,
+        username: userRow.username,
+        pagination,
+        permission: userRow.permission || {},
+        permissions: userRow.permission || {},
+        filterData,
+        companyData,
+        userId: userRow.id,
+      };
       setCookie('userSession', sessionData, 7);
-      onLogin(appRole, userRow.username, pagination, filterData, companyData);
+      onLogin(appRole, userRow.username, pagination, filterData, companyData, userRow.permission || {});
     } catch (err) {
       console.error('Login error:', err);
       setError(err.message || 'Login failed. Please try again.');

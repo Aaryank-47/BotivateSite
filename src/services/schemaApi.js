@@ -29,16 +29,31 @@ try {
 export const fetchCompanies = async () => {
   const { data, error } = await supabase
     .from("users")
-    .select("id, name, company_name, username")
+    .select("id, name, company_name, username, password")
     .eq("role", "company")
     .eq("is_active", true)
     .order("name", { ascending: true });
   if (error) throw error;
-  return (data || []).map((u) => ({
-    id: u.id,
-    name: u.company_name || u.name,
-    username: u.username,
-  }));
+  // Deduplicate by company_name: prefer the MAIN (non-Temp@2026) entry per unique name.
+  // This prevents duplicate entries in dropdowns when multiple accounts share the same company.
+  const seen = new Map(); // normalized name → chosen row
+  for (const u of data || []) {
+    const label = (u.company_name || u.name || "").trim();
+    const key = label.toLowerCase();
+    if (!key) continue;
+    const existing = seen.get(key);
+    // Keep this row if: no entry yet, OR this one has a real password (is the MAIN)
+    if (!existing || existing.password === "Temp@2026") {
+      seen.set(key, { ...u, _label: label });
+    }
+  }
+  return [...seen.values()]
+    .sort((a, b) => a._label.localeCompare(b._label))
+    .map((u) => ({
+      id: u.id,
+      name: u._label,
+      username: u.username,
+    }));
 };
 
 export const fetchUsers = async () => {
@@ -183,28 +198,22 @@ export const fetchTakenFromUsers = async (excludeUserId = null) => {
  * sorted A-Z. Returns [{ name }].
  */
 export const fetchTakenFromNames = async (excludeUserId = null) => {
-  // only users with the admin role (employees are NOT listed) + names already stored in taken_from
-  const { data: admins, error: adminErr } = await supabase
+  // all admins + only specific employees (Vikas & Deepak)
+  const { data: rows, error } = await supabase
     .from("users")
-    .select("id, name, username")
+    .select("id, name, username, role")
     .eq("is_active", true)
-    .eq("role", "admin");
-  if (adminErr) throw adminErr;
-  const users = (admins || []).filter((u) => !excludeUserId || String(u.id) !== String(excludeUserId));
-  const stored = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await supabase
-      .from("user_tasks")
-      .select("taken_from")
-      .not("taken_from", "is", null)
-      .order("id", { ascending: true })
-      .range(from, from + 999);
-    if (error) throw error;
-    stored.push(...(data || []).map((r) => r.taken_from));
-    if (!data || data.length < 1000) break;
-  }
+    .in("role", ["admin", "employee"]);
+  if (error) throw error;
+  const ALLOWED_EMPLOYEES = ["vikas", "dipak"];
+  const filtered = (rows || []).filter((u) => {
+    if (u.role === "admin") return true;
+    const nameLower = (u.name || u.username || "").toLowerCase();
+    return ALLOWED_EMPLOYEES.some((n) => nameLower.includes(n));
+  });
+  const users = filtered.filter((u) => !excludeUserId || String(u.id) !== String(excludeUserId));
   const seen = new Map();
-  [...users.map((u) => u.name || u.username), ...stored].forEach((raw) => {
+  users.map((u) => u.name || u.username).forEach((raw) => {
     const name = String(raw ?? "").replace(/\s+/g, " ").trim();
     if (!name) return;
     const key = name.toLowerCase();
@@ -640,6 +649,7 @@ export const SIDEBAR_PAGE_OPTIONS = [
   { key: "tasks-table", label: "Tasks Table" },
   { key: "pending-tasks", label: "Pending Tasks" },
   { key: "completed-tasks", label: "Completed Tasks" },
+  { key: "order-list", label: "Order List" },
   { key: "assign-tester", label: "Assign Tester" },
   { key: "tester", label: "Tester" },
   { key: "approval-delivery", label: "Approval For Delivery" },
@@ -653,8 +663,12 @@ export const SIDEBAR_PAGE_OPTIONS = [
   { key: "checklist-assign", label: "Checklist Assign" },
   { key: "checklist-pending", label: "Checklist Pending" },
   { key: "pc-page", label: "PC Page" },
-  { key: "user-access", label: "User Access" },
+  { key: "meeting", label: "Meeting (Training & SOP)" },
   { key: "holidays", label: "Holidays" },
+  { key: "company-systems", label: "My Systems (Company)" },
+  { key: "company-profile", label: "Company Profile" },
+  { key: "add-user", label: "Add User (Settings)" },
+  { key: "add-company", label: "Add Company (Settings)" },
 ];
 
 
@@ -1503,10 +1517,14 @@ const annotateTestingNos = (rows) => {
   return rows;
 };
 
+/** Types of work that enter the Order System pipeline (Assign Tester → Approval → Inform). */
+export const ORDER_SYSTEM_WORK_TYPES = ["System Actual", "System Dummy"];
+
 export const fetchTaskTesting = async () => {
   const { data, error } = await supabase
     .from("task_testing")
     .select(TASK_TESTING_SELECT)
+    .in("type_of_product", ORDER_SYSTEM_WORK_TYPES)
     .order("id", { ascending: false });
   if (error) {
     console.error("fetchTaskTesting error:", error);
@@ -1629,6 +1647,23 @@ export const completeTaskWithDelivery = async ({
     p_system_id: systemId ? Number(systemId) : null,
     p_type_of_product: task.typeOfWork || task.type_of_work || null,
   });
+};
+
+/**
+ * Task Update -> Complete (non-system types only): marks the task Completed directly,
+ * WITHOUT inserting into task_testing / Order System pipeline.
+ */
+export const completeTaskSimple = async ({ taskId, remarks, madeByUserId }) => {
+  const now = new Date().toISOString();
+  const table = await taskTableOf(taskId);
+  const patch = {
+    status: "Completed",
+    completed_at: now,
+    updated_at: now,
+  };
+  if (remarks) patch.remarks = remarks;
+  const { error } = await supabase.from(table).update(patch).eq("id", taskId);
+  if (error) throw error;
 };
 
 /** Task Update -> Pending: new expected delivery date + remark, task stays pending in DB. */

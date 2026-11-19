@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
+import supabase from "../../supabaseClient"
 import { fetchPendingCounts } from "../../services/schemaApi"
 import { subscribeCounts, countForTab, onCountsRefresh } from "../../utils/sidebarCounts"
 import {
@@ -16,7 +17,6 @@ import {
   Shield,
   Bot,
   Sparkles,
-  UserCog,
   CalendarDays,
   UserPlus,
   ClipboardList,
@@ -79,13 +79,13 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
       "checklist-assign": "Assign Task",
       "checklist-pending": "Pending Task",
       "pc-page": "PC Page",
-      "user-access": "User Access",
       "add-user": "Add User",
       "add-company": "Add Company",
       "holidays": "Holidays",
       "order-list": "Order List",
       "meeting": "Meeting",
       "company-systems": "My Systems",
+      "company-tasks": "My Tasks",
       "company-profile": "Company Profile",
       "system-approvals": "System Approvals"
     }
@@ -114,7 +114,6 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
     { id: "ai-helper", label: getTabLabel("ai-helper", userRole), icon: Bot, key: "ai-helper" },
     { id: "reports", label: getTabLabel("reports", userRole), icon: BarChart3, key: "reports" },
     { id: "holidays", label: getTabLabel("holidays", userRole), icon: CalendarDays, key: "holidays" },
-    { id: "user-access", label: getTabLabel("user-access", userRole), icon: UserCog, key: "user-access" },
     { id: "add-user", label: getTabLabel("add-user", userRole), icon: UserPlus, key: "add-user" },
     { id: "add-company", label: getTabLabel("add-company", userRole), icon: Building2, key: "add-company" },
     { id: "order-list", label: getTabLabel("order-list", userRole), icon: Package, key: "order-list" },
@@ -123,26 +122,111 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
     ...((userRole || "").toLowerCase() === "company"
       ? [
           { id: "company-systems", label: getTabLabel("company-systems", userRole), icon: Building2, key: "company-systems" },
+          { id: "company-tasks", label: "My Tasks", icon: CheckCircle, key: "company-tasks" },
           { id: "company-profile", label: getTabLabel("company-profile", userRole), icon: User, key: "company-profile" },
         ]
       : []),
   ]
 
+  // Safe helper to parse permission object whether it comes as jsonb object or string
+  const parsePermission = (p) => {
+    if (!p) return null
+    if (typeof p === "object") return p
+    if (typeof p === "string") {
+      try {
+        const parsed = JSON.parse(p)
+        if (parsed && typeof parsed === "object") return parsed
+      } catch {
+        return null
+      }
+    }
+    return null
+  }
+
+  // Helper to resolve permissions array from user object or stored session
+  const resolvePermissions = (data) => {
+    if (!data) return ["dashboard"]
+    const role = (data.role || data.type || "").toLowerCase()
+    if (role === "superadmin") return ["all"]
+
+    // 1. Check explicit permission JSON object from DB
+    const permObj = parsePermission(data.permission || data.permissions)
+    if (permObj) {
+      if (permObj.all === true) return ["all"]
+      const keys = Object.keys(permObj).filter((k) => permObj[k] === true)
+      if (keys.length > 0) {
+        if (role === "company") {
+          const companyRequired = ["dashboard", "company-systems", "company-tasks", "troubleshoot", "ai-helper", "company-profile"]
+          return [...new Set([...keys, ...companyRequired])]
+        }
+        return keys
+      }
+    }
+
+    // 2. Check pagination (legacy permission array or string)
+    const pag = data.pagination || (data.companyData && data.companyData.paginationNew)
+    if (pag) {
+      if (pag === "all") return ["all"]
+      if (Array.isArray(pag) && pag.length > 0) {
+        return pag.map((p) => String(p).toLowerCase())
+      }
+      if (typeof pag === "string") {
+        try {
+          const parsed = JSON.parse(pag)
+          if (parsed && typeof parsed === "object") {
+            if (parsed.all === true) return ["all"]
+            const keys = Object.keys(parsed).filter((k) => parsed[k] === true)
+            if (keys.length > 0) return keys
+          }
+        } catch {
+          /* ignore */
+        }
+        const split = pag.split(",").map((p) => p.trim().toLowerCase()).filter(Boolean)
+        if (split.length > 0) return split
+      }
+    }
+
+    // 3. Role defaults if no explicit permissions configured yet
+    const defaults = {
+      admin: ["all"],
+      hod: [
+        "dashboard", "assign-task", "pending-tasks", "completed-tasks", "tasks-table",
+        "delegation-form", "delegation-tasks", "pc-page",
+        "assign-tester", "tester", "approval-delivery", "order-list", "meeting", "holidays",
+      ],
+      employee: [
+        "dashboard", "assign-task", "pending-tasks", "completed-tasks", "pc-page", "tester", "meeting", "holidays",
+      ],
+      company: [
+        "dashboard", "company-systems", "company-tasks", "troubleshoot", "ai-helper", "company-profile",
+      ],
+    }
+    const base = defaults[role] || ["dashboard"]
+    // Always merge company required pages even if DB has partial permissions
+    if (role === "company") {
+      const companyRequired = ["dashboard", "company-systems", "company-tasks", "troubleshoot", "ai-helper", "company-profile"]
+      return [...new Set([...base, ...companyRequired])]
+    }
+    return base
+  }
+
   useEffect(() => {
-    let userData = null;
+    let userData = null
 
     if (user) {
       userData = {
-        role: user.type,
-        type: user.type,
+        role: user.role || user.type,
+        type: user.role || user.type,
         username: user.username,
         pagination: user.pagination,
+        permission: user.permission || user.permissions,
+        userId: user.userId || user.id,
         filterData: userFilterData,
-        companyData: companyData
+        companyData: companyData,
       }
     } else {
       // Get user data from different sources as a fallback
-      const storedSession = sessionStorage.getItem('userSession')
+      const storedSession = sessionStorage.getItem("userSession")
       if (storedSession) {
         try {
           userData = JSON.parse(storedSession)
@@ -152,309 +236,150 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
       }
 
       if (!userData) {
-        const storedUsername = localStorage.getItem('tempUsername')
+        const storedUsername = localStorage.getItem("tempUsername")
         if (storedUsername) {
-          userData = {
-            username: storedUsername,
-          }
+          userData = { username: storedUsername }
         }
       }
     }
 
     setUserInfo(userData)
-
-    if (userData) {
-      // Handle different user types
-      if (userData.role === "admin" || userData.type === "admin" || userData.role === "superadmin" || userData.type === "superadmin") {
-        setUserPermissions(["all"])
-      } else if (userData.role === "hod" || userData.type === "hod") {
-        setUserPermissions(["dashboard", "assign-task", "pending-tasks", "tasks-table", "holidays"])
-      } else if (userData.role === "company") {
-        handleCompanyPermissions(userData)
-      } else if (userData.role === "employee" || userData.type === "employee") {
-        handleUserPermissions(userData)
-      } else {
-        setUserPermissions(["dashboard"])
-      }
-    } else {
-      setUserPermissions(["dashboard"])
-    }
+    setUserPermissions(resolvePermissions(userData))
   }, [user, userFilterData, companyData])
 
-  // Handle company permissions using paginationnew from Column E
-const handleCompanyPermissions = (userData) => {
+  // Sync fresh permissions directly from users table and react to real-time edits
+  useEffect(() => {
+    const fetchFreshPermissions = async () => {
+      const uName = user?.username || userInfo?.username
+      const uId = user?.userId || user?.id || userInfo?.userId
+      if (!uName && !uId) return
 
-  const paginationNew = userData.companyData?.paginationNew;
-  const pagination = userData.pagination;
+      try {
+        let query = supabase.from("users").select("id, username, role, permission, is_active")
+        if (uId) query = query.eq("id", uId)
+        else query = query.eq("username", uName)
 
-  if (paginationNew) {
-
-    if (typeof paginationNew === "string") {
-      if (paginationNew.toLowerCase() === "all") {
-        setUserPermissions(["all"]);
-      } else {
-        const permissions = paginationNew
-          .split(",")
-          .map(perm => perm.trim().toLowerCase())
-          .filter(perm => perm.length > 0);
-
-        setUserPermissions(permissions);
+        const { data: row, error } = await query.maybeSingle()
+        if (!error && row && row.permission) {
+          const perm = parsePermission(row.permission)
+          if (perm) {
+            let newPerms
+            if (row.role === "superadmin" || perm.all === true) {
+              newPerms = ["all"]
+            } else {
+              const keys = Object.keys(perm).filter((k) => perm[k] === true)
+              const base = keys.length > 0 ? keys : ["dashboard"]
+              // Always ensure company accounts see their required pages
+              const companyRequired = ["dashboard", "company-systems", "company-tasks", "troubleshoot", "ai-helper", "company-profile"]
+              newPerms = row.role === "company" ? [...new Set([...base, ...companyRequired])] : base
+            }
+            setUserPermissions(newPerms)
+            try {
+              const sess = JSON.parse(sessionStorage.getItem("userSession") || "{}")
+              sess.permission = perm
+              sess.permissions = perm
+              sess.pagination = newPerms
+              sessionStorage.setItem("userSession", JSON.stringify(sess))
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not sync fresh user permissions:", err)
       }
-    } else if (Array.isArray(paginationNew)) {
-      const permissions = paginationNew.map(perm => perm.toLowerCase());
-      setUserPermissions(permissions);
-    } else {
-      console.warn("⚠️ Unexpected paginationNew format:", paginationNew);
-      setUserPermissions(["dashboard"]);
     }
-  } else if (pagination) {
 
-    if (typeof pagination === "string") {
-      if (pagination.toLowerCase() === "all") {
-        setUserPermissions(["all"]);
-      } else {
-        const permissions = pagination
-          .split(",")
-          .map(perm => perm.trim().toLowerCase())
-          .filter(perm => perm.length > 0);
+    fetchFreshPermissions()
 
-        setUserPermissions(permissions);
+    const onSessionUpdate = (e) => {
+      if (e.detail?.permission) {
+        const perm = parsePermission(e.detail.permission)
+        if (perm) {
+          const newPerms =
+            perm.all === true
+              ? ["all"]
+              : Object.keys(perm).filter((k) => perm[k] === true)
+          setUserPermissions(newPerms.length > 0 ? newPerms : ["dashboard"])
+        }
       }
-    } else if (Array.isArray(pagination)) {
-      const permissions = pagination.map(perm => perm.toLowerCase());
-      setUserPermissions(permissions);
-    } else {
-      console.warn("⚠️ Unexpected pagination format:", pagination);
-      setUserPermissions(["dashboard"]);
     }
-  } else {
-    setUserPermissions(["dashboard"]);
-  }
-};
+    window.addEventListener("userSessionUpdated", onSessionUpdate)
+    return () => window.removeEventListener("userSessionUpdated", onSessionUpdate)
+  }, [user?.username, user?.userId, userInfo?.username, userInfo?.userId])
 
-
-  // Handle user permissions using existing pagination logic
- const handleUserPermissions = (userData) => {
-
-  const pagination = userData.pagination;
-
-  if (pagination) {
-
-    if (typeof pagination === "string") {
-      // case: string like "all" or "pending-tasks,completed-tasks"
-      if (pagination.toLowerCase() === "all") {
-        setUserPermissions(["all"]);
-      } else {
-        const permissions = pagination
-          .split(",")
-          .map(perm => perm.trim().toLowerCase())
-          .filter(perm => perm.length > 0);
-
-        setUserPermissions(permissions);
-      }
-    } else if (Array.isArray(pagination)) {
-      // case: already an array
-      const permissions = pagination.map(perm => perm.toLowerCase());
-      setUserPermissions(permissions);
-    } else {
-      console.warn("⚠️ Unexpected pagination format:", pagination);
-      setUserPermissions(["dashboard"]);
-    }
-  } else {
-    setUserPermissions(["dashboard"]);
-  }
-};
-
-
-  // Filter tabs based on permissions
+  // Filter tabs strictly based on permissions
   const getVisibleTabs = () => {
-    const allTabs = getAllTabs(userInfo?.role) // Get tabs with dynamic labels
-
-    if (userPermissions.includes("all")) {
-      const roleAll = (userInfo?.role || userInfo?.type || "").toLowerCase()
-      // User Access ONLY for superadmin
-      // Holidays: superadmin, admin, hod, employee (NOT company)
-      if (roleAll === "superadmin") return allTabs
-      if (roleAll === "admin") {
-        return allTabs.filter((t) => t.id !== "user-access" && t.id !== "system-approvals")
-      }
-      // Settings > Add User / Add Company: admin & superadmin only (handled above)
-      const SETTINGS_IDS = ["add-user", "add-company"]
-      // company with "all" — no user-access, holidays, delegation, checklist, pc, meeting
-      if (roleAll === "company") {
-        return allTabs.filter(
-          (t) =>
-            t.id !== "user-access" &&
-            !SETTINGS_IDS.includes(t.id) &&
-            t.id !== "holidays" &&
-            t.id !== "meeting" &&
-            t.id !== "delegation-form" &&
-            t.id !== "delegation-tasks" &&
-            t.id !== "checklist-assign" &&
-            t.id !== "checklist-pending" &&
-            t.id !== "pc-page" &&
-            t.id !== "assign-task" &&
-            t.id !== "pending-tasks" &&
-            t.id !== "assign-tester" &&
-            t.id !== "tester" &&
-            t.id !== "approval-delivery" &&
-            t.id !== "inform-customer" &&
-            t.id !== "system-approvals"
-        )
-      }
-      // others with "all"
-      return allTabs.filter(
-        (t) =>
-          t.id !== "user-access" &&
-          !SETTINGS_IDS.includes(t.id) &&
-          t.id !== "holidays" &&
-          t.id !== "system-approvals" &&
-          (t.id !== "assign-tester" || roleAll === "hod")
-      )
-    }
-
     const role = (userInfo?.role || userInfo?.type || "").toLowerCase()
-    const isEmployee = role === "employee"
+    const allTabs = getAllTabs(role)
 
-    const visibleTabs = allTabs.filter(tab => {
-      // Settings pages: admin / superadmin only
-      if (tab.id === "add-user" || tab.id === "add-company") {
-        return role === "admin" || role === "superadmin"
-      }
-      // Company accounts always get their systems page
-      if (tab.id === "company-systems" || tab.id === "company-profile") return true
-      // ...plus the AI consultant and Troubleshoot pages
-      if (
-        (userInfo?.role || userInfo?.type || "").toLowerCase() === "company" &&
-        (tab.id === "ai-helper" || tab.id === "troubleshoot")
-      )
-        return true
+    // Superadmin always gets all tabs
+    if (role === "superadmin") return allTabs
 
-      // Always show dashboard
-      if (tab.id === "overview" || tab.key === "dashboard") {
-        return true
-      }
+    const hasAll = userPermissions.includes("all")
 
-      // User Access: superadmin always; others only if explicitly granted in DB permission
-      if (tab.id === "user-access") {
-        if (role === "superadmin") return true
-        // fall through to permission match below
-      }
+    // Company accounts never get internal employee management tools
+    const companyProhibited = [
+      "add-user",
+      "add-company",
+      "holidays",
+      "meeting",
+      "delegation-form",
+      "delegation-tasks",
+      "checklist-assign",
+      "checklist-pending",
+      "pc-page",
+      "assign-tester",
+      "tester",
+      "approval-delivery",
+      "inform-customer",
+      "system-approvals",
+      // Company accounts use the combined "My Tasks" page instead of separate pending/completed pages
+      "pending-tasks",
+      "completed-tasks",
+    ]
 
-      // Holidays: superadmin, admin, hod, employee — NOT company
-      if (tab.id === "holidays") {
-        return (
-          role === "admin" ||
-          role === "superadmin" ||
-          role === "hod" ||
-          role === "employee" ||
-          role === "user"
-        )
-      }
+    const visible = allTabs.filter((tab) => {
+      // 1. Dashboard is always visible to everyone
+      if (tab.id === "overview" || tab.key === "dashboard") return true
 
-      // Assign Tester: superadmin, admin, hod. Tester: everyone except company.
-      if (tab.id === "system-approvals") {
-        return role === "superadmin"
-      }
-      if (tab.id === "assign-tester") {
-        return role === "superadmin" || role === "admin" || role === "hod"
-      }
-      if (tab.id === "tester" || tab.id === "approval-delivery" || tab.id === "inform-customer") {
-        return role !== "company"
-      }
-
-      // Company never sees delegation, checklist, PC, or internal meeting training
+      // 2. Company accounts check
       if (role === "company") {
-        if (
-          tab.id === "meeting" ||
-          tab.id === "delegation-form" ||
-          tab.id === "delegation-tasks" ||
-          tab.id === "checklist-assign" ||
-          tab.id === "checklist-pending" ||
-          tab.id === "pc-page" ||
-          tab.id === "assign-task" ||
-          tab.id === "pending-tasks"
-        ) {
-          return false
-        }
+        if (companyProhibited.includes(tab.id)) return false
       }
 
-      // Meeting training & SOP page: available to all internal employee roles
-      if (tab.id === "meeting") {
-        return role !== "company"
+      // 3. Full access granted
+      if (hasAll) {
+        if (tab.id === "system-approvals") return false
+        return true
       }
 
-      // Checklist Assign + old Delegation Form: superadmin, admin, hod only
-      if (tab.id === "delegation-form" || tab.id === "checklist-assign") {
+      // 4. Permission match based on userPermissions array
+      const tabIdNorm = tab.id.toLowerCase().replace(/[-_\s]/g, "")
+      const tabKeyNorm = (tab.key || "").toLowerCase().replace(/[-_\s]/g, "")
+
+      return userPermissions.some((perm) => {
+        if (!perm) return false
+        const pNorm = String(perm).toLowerCase().replace(/[-_\s]/g, "")
         return (
-          role === "superadmin" ||
-          role === "admin" ||
-          role === "hod"
-        )
-      }
-
-      // Checklist Pending + Delegation Tasks: everyone except company
-      if (tab.id === "delegation-tasks" || tab.id === "checklist-pending") {
-        return (
-          role === "superadmin" ||
-          role === "admin" ||
-          role === "hod" ||
-          role === "employee" ||
-          role === "user"
-        )
-      }
-
-      // PC Page: superadmin, admin, hod only
-      if (tab.id === "pc-page") {
-        return (
-          role === "superadmin" ||
-          role === "admin" ||
-          role === "hod"
-        )
-      }
-
-      // Trust users.permission from DB (loaded into userPermissions at login).
-      // Only use role baselines when permission list is empty / missing.
-      if (isEmployee) {
-        const hasExplicit = userPermissions.some(
-          (p) => !["dashboard", "all"].includes(String(p).toLowerCase())
-        )
-        if (!hasExplicit) {
-          return tab.id === "assign-task" || tab.id === "pending-tasks"
-        }
-      }
-
-      if (role === "company") {
-        const hasExplicit = userPermissions.some(
-          (p) => !["dashboard", "all"].includes(String(p).toLowerCase())
-        )
-        if (!hasExplicit) {
-          // Company baseline: ticket + pending only (no developer-stage)
-          return tab.id === "assign-task" || tab.id === "pending-tasks"
-        }
-      }
-
-      // Check explicit permissions
-      return userPermissions.some(permission => {
-        const permLower = permission.toLowerCase().replace(/[-_\s]/g, '')
-        const tabKeyLower = tab.key.toLowerCase().replace(/[-_\s]/g, '')
-        const tabIdLower = tab.id.toLowerCase().replace(/[-_\s]/g, '')
-
-        return (
-          permLower === tabKeyLower ||
-          permLower === tabIdLower ||
-          permLower.includes(tabKeyLower) ||
-          tabKeyLower.includes(permLower) ||
-          (permLower === "pendingtask" && (tabIdLower === "pendingtasks" || tabKeyLower === "pendingtasks"))
+          pNorm === tabIdNorm ||
+          pNorm === tabKeyNorm ||
+          (pNorm === "overview" && tabKeyNorm === "dashboard") ||
+          (pNorm === "dashboard" && tabIdNorm === "overview") ||
+          (pNorm === "pendingtask" && (tabIdNorm === "pendingtasks" || tabKeyNorm === "pendingtasks")) ||
+          (pNorm === "completedtask" && (tabIdNorm === "completedtasks" || tabKeyNorm === "completedtasks")) ||
+          (pNorm === "delegation" && (tabIdNorm === "delegationform" || tabIdNorm === "delegationtasks")) ||
+          (pNorm === "checklist" && (tabIdNorm === "checklistassign" || tabIdNorm === "checklistpending")) ||
+          (pNorm === "settings" && (tabIdNorm === "adduser" || tabIdNorm === "addcompany"))
         )
       })
     })
 
-    return visibleTabs.length > 0 ? visibleTabs : [allTabs[0]] // At least show dashboard
+    return visible.length > 0 ? visible : [allTabs[0]] // At least show dashboard
   }
 
   // company accounts get a fixed order: Dashboard, My Systems, Troubleshoot, AI Consultant, Company Profile
-  const COMPANY_TAB_ORDER = ["overview", "company-systems", "troubleshoot", "ai-helper", "company-profile"]
+  const COMPANY_TAB_ORDER = ["overview", "company-systems", "company-tasks", "troubleshoot", "ai-helper", "company-profile"]
   const isCompanyRole = (userInfo?.role || userInfo?.type || "").toLowerCase() === "company"
   const visibleTabs = isCompanyRole
     ? [...getVisibleTabs()].sort((x, y) => {
@@ -571,7 +496,7 @@ const handleCompanyPermissions = (userData) => {
   const RoleIcon = getUserRoleIcon()
 
   return (
-    <aside className="w-72 bg-white border-r border-gray-100 flex-1 overflow-y-auto pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <aside className="w-80 bg-white border-r border-gray-100 flex-1 overflow-y-auto pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       <nav className="p-4">
         {/* User Info Section */}
        {/* User Info Section */}
@@ -801,11 +726,6 @@ const handleCompanyPermissions = (userData) => {
                   <span className="font-medium text-[14px] leading-snug min-w-0 flex-1 whitespace-nowrap">
                     Order System
                   </span>
-                  {!orderOpen && orderChildren.reduce((n, c) => n + badgeFor(c.id), 0) > 0 && (
-                    <span className="shrink-0 min-w-[20px] rounded-full bg-orange-500 px-1.5 py-0.5 text-center text-[11px] font-bold leading-none text-white">
-                      {orderChildren.reduce((n, c) => n + badgeFor(c.id), 0)}
-                    </span>
-                  )}
                   <ChevronDown
                     className={`w-4 h-4 flex-shrink-0 text-gray-400 transition-transform ${
                       orderOpen ? "rotate-180" : ""

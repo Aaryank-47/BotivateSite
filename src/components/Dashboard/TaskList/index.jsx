@@ -492,12 +492,13 @@ export default function TaskList({
             let matchesStatus = true;
             if (filterStatus) {
                 const statusFilter = filterStatus.toLowerCase();
-                if (statusFilter === "pending") {
+                // Company view uses granular statuses (exact match); admin view keeps broad pending/completed groups
+                if (!isCompanyUser && statusFilter === "pending") {
                     matchesStatus =
                         normalizedStatus === "pending" ||
                         normalizedStatus === "in progress" ||
                         normalizedStatus === "assigned";
-                } else if (statusFilter === "completed") {
+                } else if (!isCompanyUser && statusFilter === "completed") {
                     matchesStatus = normalizedStatus === "completed";
                 } else {
                     matchesStatus = normalizedStatus === statusFilter;
@@ -678,6 +679,19 @@ export default function TaskList({
                         <option value="">All Status</option>
                         <option value="pending">Pending</option>
                         <option value="completed">Completed</option>
+                    </Select>
+                )}
+
+                {isCompanyUser && isCombinedView && (
+                    <Select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="flex-shrink-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="">All Status</option>
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
                     </Select>
                 )}
 

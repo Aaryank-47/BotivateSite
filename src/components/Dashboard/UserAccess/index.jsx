@@ -35,6 +35,10 @@ import {
   ClipboardCheck,
   FlaskConical,
   ShieldCheck,
+  Package,
+  CalendarCheck,
+  Send,
+  FileCheck2,
 } from "lucide-react";
 import {
   fetchAllUsersForAdmin,
@@ -175,6 +179,62 @@ const PAGE_META = {
     tint: "from-purple-500/15 to-violet-500/5",
     ring: "ring-purple-200",
     iconBg: "bg-purple-100 text-purple-600",
+  },
+  "order-list": {
+    icon: Package,
+    blurb: "View orders and client systems",
+    tint: "from-amber-500/15 to-orange-500/5",
+    ring: "ring-amber-200",
+    iconBg: "bg-amber-100 text-amber-600",
+  },
+  "inform-customer": {
+    icon: Send,
+    blurb: "Inform client about delivery",
+    tint: "from-indigo-500/15 to-blue-500/5",
+    ring: "ring-indigo-200",
+    iconBg: "bg-indigo-100 text-indigo-600",
+  },
+  "system-approvals": {
+    icon: FileCheck2,
+    blurb: "Review requested systems",
+    tint: "from-emerald-500/15 to-green-500/5",
+    ring: "ring-emerald-200",
+    iconBg: "bg-emerald-100 text-emerald-600",
+  },
+  "meeting": {
+    icon: CalendarCheck,
+    blurb: "Employee training & meeting SOP",
+    tint: "from-purple-500/15 to-indigo-500/5",
+    ring: "ring-purple-200",
+    iconBg: "bg-purple-100 text-purple-600",
+  },
+  "company-systems": {
+    icon: Building2,
+    blurb: "Client system modules and tasks",
+    tint: "from-blue-500/15 to-sky-500/5",
+    ring: "ring-blue-200",
+    iconBg: "bg-blue-100 text-blue-600",
+  },
+  "company-profile": {
+    icon: Building2,
+    blurb: "Company information & details",
+    tint: "from-slate-500/15 to-gray-500/5",
+    ring: "ring-slate-200",
+    iconBg: "bg-slate-100 text-slate-600",
+  },
+  "add-user": {
+    icon: UserPlus,
+    blurb: "Create & manage internal users",
+    tint: "from-violet-500/15 to-purple-500/5",
+    ring: "ring-violet-200",
+    iconBg: "bg-violet-100 text-violet-600",
+  },
+  "add-company": {
+    icon: Building2,
+    blurb: "Create & manage client companies",
+    tint: "from-amber-500/15 to-yellow-500/5",
+    ring: "ring-amber-200",
+    iconBg: "bg-amber-100 text-amber-600",
   },
 };
 
@@ -425,7 +485,8 @@ function Modal({ open, onClose, children }) {
 }
 
 export default function UserAccess({ userRole = "superadmin" }) {
-  const canManage = userRole === "superadmin";
+  const normRole = (userRole || "").toLowerCase();
+  const canManage = normRole === "superadmin" || normRole === "admin";
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -598,6 +659,18 @@ export default function UserAccess({ userRole = "superadmin" }) {
           permission,
         });
         setFormSuccess(`User “${form.username}” updated.`);
+        try {
+          const currentSession = JSON.parse(sessionStorage.getItem("userSession") || "{}");
+          if (currentSession.userId === editingId || currentSession.username === form.username) {
+            currentSession.permission = permission;
+            currentSession.permissions = permission;
+            currentSession.pagination = permission.all === true ? "all" : Object.keys(permission).filter((k) => permission[k]);
+            sessionStorage.setItem("userSession", JSON.stringify(currentSession));
+            window.dispatchEvent(new CustomEvent("userSessionUpdated", { detail: currentSession }));
+          }
+        } catch {
+          /* ignore */
+        }
         await loadUsers();
       }
     } catch (err) {
@@ -631,7 +704,7 @@ export default function UserAccess({ userRole = "superadmin" }) {
   const renderRow = (u) => {
     const revealed = revealedIds.has(u.id);
     const pageCount =
-      u.role === "admin" || u.role === "superadmin"
+      u.role === "superadmin" || u.permission?.all === true
         ? SIDEBAR_PAGE_OPTIONS.length
         : permissionToKeys(u.permission).length;
     return (
@@ -723,7 +796,7 @@ export default function UserAccess({ userRole = "superadmin" }) {
   const renderCard = (u) => {
     const revealed = revealedIds.has(u.id);
     const pageCount =
-      u.role === "admin" || u.role === "superadmin"
+      u.role === "superadmin" || u.permission?.all === true
         ? SIDEBAR_PAGE_OPTIONS.length
         : permissionToKeys(u.permission).length;
 
@@ -804,7 +877,7 @@ export default function UserAccess({ userRole = "superadmin" }) {
         <Shield className="w-12 h-12 text-gray-300 mb-3" />
         <h2 className="text-lg font-semibold text-gray-800">Restricted</h2>
         <p className="text-sm text-gray-500 mt-1 max-w-sm">
-          User Access is available only to Superadmin accounts.
+          Page Management is available only to Admin and Superadmin accounts.
         </p>
       </div>
     );

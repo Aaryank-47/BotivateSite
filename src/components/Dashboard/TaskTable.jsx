@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { publishCount } from "../../utils/sidebarCounts";
 import {
   RefreshCw,
   Clock,
@@ -106,6 +107,7 @@ export default function EmployeeTasksTable({
     () => tasks.filter((t) => !t.assigned_member_1),
     [tasks]
   );
+  useEffect(() => { publishCount("tasks-table", pendingTasks.length); }, [pendingTasks.length]);
   const historyTasks = useMemo(
     () => tasks.filter((t) => !!t.assigned_member_1),
     [tasks]
@@ -166,6 +168,44 @@ export default function EmployeeTasksTable({
     }));
   };
 
+  // Returns a prefilled draft for a task row when first selected
+  const buildDefaultDraft = (task) => {
+    // Prefill Member 1: match posted_by name against members list
+    let defaultMemberId1 = task.assigned_member_1 ? String(task.assigned_member_1) : "";
+    if (!defaultMemberId1) {
+      const postedName = (postedByName(task) || "").trim().toLowerCase();
+      if (postedName) {
+        const match = members.find(
+          (m) => (m.name || m.username || "").trim().toLowerCase() === postedName
+        );
+        if (match) defaultMemberId1 = String(match.id);
+      }
+    }
+
+    // Prefill Time Required: use expected_date_to_close if available
+    let defaultTimeRequired = "";
+    if (task.expected_date_to_close) {
+      const raw = task.expected_date_to_close;
+      // Convert "YYYY-MM-DD" or ISO string to datetime-local "YYYY-MM-DDTHH:mm"
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        defaultTimeRequired = `${raw}T00:00`;
+      } else {
+        const d = new Date(raw);
+        if (!isNaN(d)) {
+          const pad = (n) => String(n).padStart(2, "0");
+          defaultTimeRequired = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+      }
+    }
+
+    return {
+      memberId1: defaultMemberId1,
+      memberId2: task.assigned_member_2 ? String(task.assigned_member_2) : "",
+      timeRequired: defaultTimeRequired,
+      remarks: "",
+    };
+  };
+
   const toggleSelect = (task) => {
     const id = task.id;
     setSelectedIds((prev) => {
@@ -176,15 +216,7 @@ export default function EmployeeTasksTable({
     });
     setDrafts((prev) => {
       if (prev[id]) return prev;
-      return {
-        ...prev,
-        [id]: {
-          memberId1: task.assigned_member_1 ? String(task.assigned_member_1) : "",
-          memberId2: task.assigned_member_2 ? String(task.assigned_member_2) : "",
-          timeRequired: "",
-          remarks: "",
-        },
-      };
+      return { ...prev, [id]: buildDefaultDraft(task) };
     });
   };
 
@@ -197,14 +229,7 @@ export default function EmployeeTasksTable({
       setDrafts((prev) => {
         const next = { ...prev };
         visibleTasks.forEach((t) => {
-          if (!next[t.id]) {
-            next[t.id] = {
-              memberId1: t.assigned_member_1 ? String(t.assigned_member_1) : "",
-              memberId2: t.assigned_member_2 ? String(t.assigned_member_2) : "",
-              timeRequired: "",
-              remarks: "",
-            };
-          }
+          if (!next[t.id]) next[t.id] = buildDefaultDraft(t);
         });
         return next;
       });

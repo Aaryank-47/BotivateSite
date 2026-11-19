@@ -50,6 +50,7 @@ import ChecklistAssign from "../ChecklistAssign";
 import ChecklistPending from "../ChecklistPending";
 import OrderList from "../OrderList";
 import CompanySystemsPage from "../CompanySystemsPage";
+import CompanyTasksPage from "../CompanyTasksPage";
 import SystemTasksPage from "../SystemTasksPage";
 import MeetingTrainingPage from "../Meeting";
 import supabase from "../../../supabaseClient";
@@ -255,7 +256,64 @@ export default function AdminDashboard({
     setUserModalTab("pending");
   };
 
+  const isTabPermitted = () => {
+    if (!userRole) return true;
+    const role = userRole.toLowerCase();
+    if (role === "superadmin") return true;
+    if (activeTab === "overview" || activeTab === "system-tasks") return true;
+
+    const permObj = user?.permission || user?.permissions;
+    if (permObj?.all === true) return true;
+    const pag = pagination || user?.pagination;
+    if (pag === "all") return true;
+
+    // Company systems / tasks drilldown: always allowed for company role
+    if (activeTab === "company-systems" || activeTab === "company-tasks") {
+      if (role === "company") return true;
+    }
+
+    const perms = Array.isArray(pag)
+      ? pag
+      : permObj && typeof permObj === "object"
+      ? Object.keys(permObj).filter((k) => permObj[k] === true)
+      : [];
+
+    if (perms.length === 0) return true;
+
+    const tabNorm = activeTab.toLowerCase().replace(/[-_\s]/g, "");
+    return perms.some((p) => {
+      const pNorm = String(p).toLowerCase().replace(/[-_\s]/g, "");
+      return (
+        pNorm === tabNorm ||
+        (pNorm === "dashboard" && tabNorm === "overview") ||
+        (pNorm === "overview" && tabNorm === "dashboard") ||
+        (pNorm === "useraccess" && tabNorm === "useraccess") ||
+        (pNorm === "orderlist" && tabNorm === "companysystems")
+      );
+    });
+  };
+
   const renderContent = () => {
+    if (!isTabPermitted()) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-8 bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900">Access Restricted</h2>
+          <p className="text-sm text-gray-500 mt-1 max-w-md">
+            You do not have permission to access this page. Please contact your administrator if you need access.
+          </p>
+          <button
+            onClick={() => setActiveTab("overview")}
+            className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case "overview":
         return (
@@ -310,6 +368,15 @@ export default function AdminDashboard({
             userFilterData={userFilterData}
             companyData={companyData}
             supabaseData={supabaseData}
+            onRefreshStats={fetchTaskCounts}
+          />
+        );
+      case "company-tasks":
+        return (
+          <CompanyTasksPage
+            userRole={userRole}
+            userFilterData={userFilterData}
+            companyData={companyData}
             onRefreshStats={fetchTaskCounts}
           />
         );
@@ -380,7 +447,7 @@ export default function AdminDashboard({
       case "approval-delivery":
         return <ApprovalForDelivery userFilterData={userFilterData} />;
       case "user-access":
-        return <UserAccess userRole={userRole} />;
+        return <AddUser />;
       case "add-user":
         return <AddUser />;
       case "add-company":

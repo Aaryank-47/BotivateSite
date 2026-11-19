@@ -30,7 +30,7 @@ export default function AppRoutes() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
-  // Map a decoded session payload onto React state (admin always gets "all").
+  // Map a decoded session payload onto React state
   const applySession = (session) => {
     const userId =
       session.filterData?.userId ??
@@ -39,8 +39,11 @@ export default function AppRoutes() {
       null
     setUser({
       type: session.role,
+      role: session.role,
       username: session.username,
       pagination: session.role === "superadmin" ? "all" : session.pagination,
+      permission: session.permission || session.permissions || null,
+      permissions: session.permissions || session.permission || null,
       userId,
       id: userId,
     })
@@ -72,7 +75,7 @@ export default function AppRoutes() {
 
   // Called by LoginModal on a successful login. The cookie is already written
   // by the modal; here we update state and route into the dashboard.
-  const handleLogin = (role, username, pagination, filterData, companyInfo = null) => {
+  const handleLogin = (role, username, pagination, filterData, companyInfo = null, permission = null) => {
     let paginationValue = pagination
     if (typeof pagination === "object") {
       try {
@@ -87,8 +90,11 @@ export default function AppRoutes() {
 
     const userData = {
       type: role,
+      role,
       username,
       pagination: finalPagination,
+      permission: permission || null,
+      permissions: permission || null,
       userId,
       id: userId,
     }
@@ -102,6 +108,8 @@ export default function AppRoutes() {
       role,
       username,
       pagination: finalPagination,
+      permission: permission || null,
+      permissions: permission || null,
       filterData,
       companyData: companyInfo,
       userId,

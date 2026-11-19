@@ -58,15 +58,15 @@ export default function AdminForm({
       <div className="pr-8 space-y-4">
         <h4 className="text-base font-semibold text-gray-800">Task Details</h4>
 
-        {/* Expected Date to Close — top */}
+        {/* Expected Date & Time to Close — top */}
         <div>
           <label className="block mb-1 text-sm font-medium text-gray-700">
-            Expected Date to Close
+            Expected Date &amp; Time to Close
           </label>
           <div className="relative">
             <Calendar className="absolute w-5 h-5 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
             <input
-              type="date"
+              type="datetime-local"
               value={task.expectedDate || ""}
               onChange={(e) =>
                 updateAdditionalTask(task.id, "expectedDate", e.target.value)
@@ -325,12 +325,12 @@ export default function AdminForm({
 
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-700">
-                Expected Date to Close <span className="text-red-500">*</span>
+                Expected Date &amp; Time to Close <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Calendar className="absolute w-5 h-5 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
                 <input
-                  type="date"
+                  type="datetime-local"
                   name="expectedDate"
                   value={formData.expectedDate}
                   onChange={handleInputChange}
