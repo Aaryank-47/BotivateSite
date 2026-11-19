@@ -84,6 +84,17 @@ cleanup_*.mjs
 review_users_cleanup/
 review_*/
 
+# DB management scripts (local only)
+delete_task_8305.mjs
+restore_test_users.mjs
+relink_tasks_to_original_company.mjs
+cleanup_temp_users.mjs
+schema_v6.sql
+seed.js
+*.json
+!package.json
+!package-lock.json
+
 # Debug screenshots and Playwright scratch scripts (local only)
 /*.png
 __pw_*.cjs
