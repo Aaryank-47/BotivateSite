@@ -5,6 +5,7 @@
 // ============================================================================
 import supabase from "../supabaseClient";
 import { requestCountsRefresh } from "../utils/sidebarCounts";
+import { safeToISO } from "../utils/dateFormatters";
 
 // Clean up any deprecated localStorage task/entity overrides so browser stays strictly synced with Supabase DB
 try {
@@ -591,14 +592,14 @@ export const convertCmpTaskToUserTask = async ({
     taken_from: takenFromName,
     company_id: Number(cmpTask.company_id),
     type_of_work: typeOfWork,
-    expected_date_to_close: new Date(expectedDateToClose).toISOString(),
+    expected_date_to_close: safeToISO(expectedDateToClose, now),
     description_of_work: desc,
     system_id: cmpTask.system_id ? Number(cmpTask.system_id) : null,
     link_of_system: cmpTask.link_of_system || null,
     attachment_file: cmpTask.attachment_file || null,
     priority: cmpTask.priority || "Medium",
     notes: cmpTask.notes || null,
-    time_required: timeRequired ? new Date(timeRequired).toISOString() : null,
+    time_required: timeRequired ? safeToISO(timeRequired) : null,
     assigned_member_1: member1,
     assigned_member_2: assignedMember2Id ? Number(assignedMember2Id) : null,
     assigned_by: member1 ? Number(assignedByUserId) : null,
@@ -1336,15 +1337,33 @@ export const updateWeeklyCall = async (id, { has_issue, customer_said, proof_url
 // ─── Orders (Order System) ───────────────────────────────────────────────────
 
 export const fetchOrders = async () => {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("orders")
-    .select("*")
+    .select("*, mis:users!mis_id(name, username)")
     .order("created_at", { ascending: false });
-  if (error) throw error;
+
+  if (error) {
+    // Fallback: support legacy staff_id if migration hasn't been run yet
+    const legacy = await supabase
+      .from("orders")
+      .select("*, mis:users!staff_id(name, username)")
+      .order("created_at", { ascending: false });
+    if (!legacy.error) return legacy.data || [];
+
+    // Fallback 2: Plain select if foreign key is not created yet
+    const plain = await supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!plain.error) return plain.data || [];
+
+    throw error;
+  }
   return data || [];
 };
 
 export const createOrder = async (payload) => {
+  const misId = payload.mis_id ?? payload.staff_id;
   const row = {
     party_name: payload.party_name,
     type_of_work: payload.type_of_work || "Project",
@@ -1362,13 +1381,28 @@ export const createOrder = async (payload) => {
     status: payload.status || "Submitted",
     remarks: payload.remarks || null,
     created_by: payload.created_by || null,
+    mis_id: misId ? Number(misId) : null,
   };
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("orders")
     .insert([row])
     .select()
     .single();
+
+  if (error && (error.message?.includes("mis_id") || error.code === "PGRST204")) {
+    // Fallback when DB table still has staff_id instead of mis_id
+    delete row.mis_id;
+    row.staff_id = misId ? Number(misId) : null;
+    const res = await supabase
+      .from("orders")
+      .insert([row])
+      .select()
+      .single();
+    if (res.error) throw res.error;
+    return res.data;
+  }
+
   if (error) throw error;
   return data;
 };
@@ -1670,7 +1704,7 @@ export const completeTaskSimple = async ({ taskId, remarks, madeByUserId }) => {
 export const postponeTask = async ({ taskId, expectedDate, remarks }) => {
   const now = new Date().toISOString();
   const patch = {
-    expected_date_to_close: new Date(expectedDate).toISOString(),
+    expected_date_to_close: safeToISO(expectedDate, now),
     updated_at: now,
   };
   if (remarks) patch.remarks = remarks;
@@ -1694,7 +1728,7 @@ export const assignTester = async (row, { testers, expectedDate, remarks, assign
     p_testing_id: row.id,
     p_frontend_tester_id: testers.Frontend ? Number(testers.Frontend) : null,
     p_backend_tester_id: testers.Backend ? Number(testers.Backend) : null,
-    p_expected_date: expectedDate ? new Date(expectedDate).toISOString() : null,
+    p_expected_date: expectedDate ? safeToISO(expectedDate) : null,
     p_remarks: remarks || null,
     p_assigned_by: assignedBy ? Number(assignedBy) : null,
   });

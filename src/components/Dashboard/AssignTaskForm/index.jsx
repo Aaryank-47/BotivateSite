@@ -9,6 +9,7 @@ import {
   createSystemForCompany,
   uploadAttachment,
 } from "../../../services/schemaApi";
+import { safeToISO } from "../../../utils/dateFormatters";
 
 const emptyFormData = {
   date: new Date().toISOString().split("T")[0],
@@ -373,15 +374,16 @@ export default function AssignTaskForm({
           }
 
           const assignedMemberId = toId(formData.assignedMemberId);
-          const givenDate = formData.date
-            ? new Date(formData.date).toISOString()
-            : new Date().toISOString();
+          const givenDate = safeToISO(formData.date, new Date().toISOString());
           const expectedRaw = task.expectedDate || formData.expectedDate;
           if (!expectedRaw) {
             throw new Error("Expected date to close is required.");
           }
           // Raw expected date — createEmplTask auto-extends past Sundays + holidays
-          const expectedDate = new Date(expectedRaw).toISOString();
+          const expectedDate = safeToISO(expectedRaw);
+          if (!expectedDate) {
+            throw new Error("Invalid expected date format: " + expectedRaw);
+          }
 
           const resolvedSystemId = await resolveNewSystem(
             task.typeOfWork || formData.typeOfWork,
@@ -438,13 +440,9 @@ export default function AssignTaskForm({
 
           const taskDate = task.date || formData.date || null;
           const expectedRaw = task.expectedDate || formData.expectedDate || null;
-          const givenDate = taskDate
-            ? new Date(taskDate).toISOString()
-            : new Date().toISOString();
+          const givenDate = safeToISO(taskDate, new Date().toISOString());
           // Raw expected — createEmplTask auto-extends past Sundays + holidays
-          const expectedDate = expectedRaw
-            ? new Date(expectedRaw + "T18:00:00").toISOString()
-            : null;
+          const expectedDate = safeToISO(expectedRaw);
 
           const taskName = task.taskName || formData.taskName || "";
           const typeOfWork = task.typeOfWork || formData.typeOfWork;

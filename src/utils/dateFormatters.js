@@ -101,3 +101,54 @@ export const formatDateToDDMMYY = (dateString) => {
     return dateString; // Return original if error
   }
 };
+
+/**
+ * Safely parse any date value (ISO string, datetime-local, DD/MM/YYYY, DD-MM-YYYY, Date object)
+ * to an ISO string without throwing RangeError: Invalid time value.
+ * Returns fallback (default null) if parsing fails.
+ */
+export const safeToISO = (val, fallback = null) => {
+  if (!val) return fallback;
+  if (val instanceof Date) {
+    return !isNaN(val.getTime()) ? val.toISOString() : fallback;
+  }
+
+  let str = String(val).trim();
+  if (!str) return fallback;
+
+  // 1. Check for DD/MM/YYYY or DD-MM-YYYY (with optional time like 17:37 or 17:37:00)
+  // e.g. "20/11/2026", "20/11/2026, 17:37", "20-11-2026 17:37"
+  const dmyMatch = str.match(
+    /^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{2,4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (dmyMatch) {
+    let [, day, month, year, hh = "18", mm = "00", ss = "00"] = dmyMatch;
+    if (year.length === 2) {
+      year = (parseInt(year, 10) < 50 ? 2000 : 1900) + parseInt(year, 10);
+    }
+    const isoDateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+    const d = new Date(isoDateStr);
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
+
+  // 2. Prevent malformed multiple 'T' concatenation like "2026-11-20T17:37T18:00:00"
+  if (str.includes("T")) {
+    const parts = str.split("T");
+    if (parts.length > 2) {
+      str = parts[0] + "T" + parts[1];
+    }
+  }
+
+  // 3. Date-only YYYY-MM-DD -> add default time if missing
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    str += "T18:00:00";
+  }
+
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    return d.toISOString();
+  }
+
+  return fallback;
+};
+
