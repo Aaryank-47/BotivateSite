@@ -29,10 +29,12 @@ export default function TaskList({
     const [filterPriority, setFilterPriority] = useState("");
     const [filterStatus, setFilterStatus] = useState("");
     const [filterParty, setFilterParty] = useState("all");
+    const [filterAssignedMember, setFilterAssignedMember] = useState("all");
     const [updatingTask, setUpdatingTask] = useState(null);
     const [pendingData, setPendingData] = useState([]);
     const [historyData, setHistoryData] = useState([]);
     const [uniqueParties, setUniqueParties] = useState([]);
+    const [uniqueAssignedMembers, setUniqueAssignedMembers] = useState([]);
     const [teamMembers1, setTeamMembers1] = useState([]);
     const [teamMembers2, setTeamMembers2] = useState([]);
     const [forwardingId, setForwardingId] = useState(null);
@@ -349,11 +351,28 @@ export default function TaskList({
     };
 
     useEffect(() => {
-        const allCurrentTasks = [...pendingData, ...historyData];
+        // Parties dropdown reflects only the tasks visible in the current view
+        const partiesSource =
+            type === "pending"
+                ? pendingData.filter((t) => !!t.assignedMember1Id || !!t.assignedMember1)
+                : type === "completed"
+                    ? historyData
+                    : [...pendingData, ...historyData];
         setUniqueParties([
-            ...new Set(allCurrentTasks.map((item) => item.partyName).filter(Boolean)),
-        ]);
-    }, [pendingData, historyData]);
+            ...new Set(partiesSource.map((item) => item.partyName).filter(Boolean)),
+        ].sort((a, b) => a.localeCompare(b)));
+        // Assigned members dropdown reflects Member 1 of currently-loaded pending tasks only
+        const pendingWithOwner = pendingData.filter(
+            (t) => !!t.assignedMember1Id || !!t.assignedMember1
+        );
+        setUniqueAssignedMembers([
+            ...new Set(
+                pendingWithOwner
+                    .map((item) => (item.assignedMember1 || "").toString().trim())
+                    .filter(Boolean)
+            ),
+        ].sort((a, b) => a.localeCompare(b)));
+    }, [pendingData, historyData, type]);
 
     // Pagination values for the current view
     const pageCountFor = (count) => Math.max(1, Math.ceil(count / itemsPerPage));
@@ -505,8 +524,11 @@ export default function TaskList({
                 }
             }
             const matchesParty = filterParty === "all" || task.partyName === filterParty;
+            const matchesAssignedMember =
+                filterAssignedMember === "all" ||
+                (task.assignedMember1 || "").toString().trim() === filterAssignedMember;
 
-            return matchesSearch && matchesPriority && matchesStatus && matchesParty;
+            return matchesSearch && matchesPriority && matchesStatus && matchesParty && matchesAssignedMember;
         });
 
         return finalTasks;
@@ -570,16 +592,16 @@ export default function TaskList({
 
     return (
         <div className="h-full flex flex-col min-h-0 space-y-6">
-            {/* Filters — one non-wrapping row; scrolls horizontally instead of dropping to a second line if it doesn't fit */}
-            <div className="flex flex-row flex-nowrap items-center gap-3 overflow-x-auto overflow-y-visible pb-1">
-                <div className="relative flex-1 min-w-[180px] max-w-md">
-                    <Search className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
+            {/* Filters */}
+            <div className="flex flex-row flex-nowrap items-center gap-4 overflow-x-auto overflow-y-visible pb-1">
+                <div className="relative flex-1 min-w-[200px] max-w-lg">
+                    <Search className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3.5 top-1/2" />
                     <input
                         type="text"
                         placeholder="Search tasks..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full py-2.5 pl-10 pr-4 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     />
                 </div>
                 <div className="relative flex-shrink-0" ref={columnFilterBtnRef}>
@@ -591,7 +613,7 @@ export default function TaskList({
                             }
                             setShowColumnFilter(!showColumnFilter);
                         }}
-                        className="flex items-center justify-center space-x-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 whitespace-nowrap"
+                        className="flex items-center justify-center space-x-2 text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm"
                     >
                         <Filter className="w-4 h-4" />
                         <span>Filter Columns</span>
@@ -649,7 +671,7 @@ export default function TaskList({
                 <Select
                     value={filterPriority}
                     onChange={(e) => setFilterPriority(e.target.value)}
-                    className="flex-shrink-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-shrink-0 px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 >
                     <option value="">All Priorities</option>
                     <option value="High">High</option>
@@ -660,7 +682,7 @@ export default function TaskList({
                     <Select
                         value={filterParty}
                         onChange={(e) => setFilterParty(e.target.value)}
-                        className="flex-shrink-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-shrink-0 px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     >
                         <option value="all">All Parties</option>
                         {uniqueParties.map((party) => (
@@ -670,11 +692,25 @@ export default function TaskList({
                         ))}
                     </Select>
                 )}
+                {!isCompanyUser && type === "pending" && (
+                    <Select
+                        value={filterAssignedMember}
+                        onChange={(e) => setFilterAssignedMember(e.target.value)}
+                        className="flex-shrink-0 px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    >
+                        <option value="all">All Assigned Members</option>
+                        {uniqueAssignedMembers.map((member) => (
+                            <option key={member} value={member}>
+                                {member}
+                            </option>
+                        ))}
+                    </Select>
+                )}
                 {!isCompanyUser && type !== "pending" && (
                     <Select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
-                        className="flex-shrink-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-shrink-0 px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     >
                         <option value="">All Status</option>
                         <option value="pending">Pending</option>
@@ -686,7 +722,7 @@ export default function TaskList({
                     <Select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
-                        className="flex-shrink-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-shrink-0 px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     >
                         <option value="">All Status</option>
                         <option value="Pending">Pending</option>
@@ -699,7 +735,7 @@ export default function TaskList({
 
             {/* Tasks Table (shared DataTable: desktop table / mobile cards + pagination footer) */}
             <div
-                className={`flex flex-col flex-1 min-h-0 overflow-hidden bg-white border border-gray-200 rounded-lg transition-opacity ${pageLoading ? "opacity-60 pointer-events-none" : ""}`}
+                className={`flex flex-col flex-1 min-h-0 overflow-hidden bg-white border border-gray-100 rounded-2xl shadow-sm transition-opacity ${pageLoading ? "opacity-60 pointer-events-none" : ""}`}
                 aria-busy={pageLoading}
             >
                 <TaskTable

@@ -17,12 +17,15 @@ import {
   AlertTriangle,
   Paperclip,
   Upload,
+  ClipboardList,
 } from "lucide-react";
 import {
   fetchChecklistTasks,
   updateChecklistTask,
   fetchWeeklyCalls,
   updateWeeklyCall,
+  fetchMISTasks,
+  updateMISTaskStatus,
 } from "../../../services/schemaApi";
 import { useDelegationTasks } from "../DelegationTasks";
 import DataTable from "../shared/DataTable";
@@ -1394,11 +1397,418 @@ function useWeeklyPanel({onEscalate}) {
   return { header, body };
 }
 
+/* ── MIS Tasks Update Modal ─────────────────────────────────────────────── */
+function MISUpdateModal({ task, onClose, onDone }) {
+  const [status, setStatus] = useState(task?.status || "Completed");
+  const [remarks, setRemarks] = useState(task?.remarks || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      await updateMISTaskStatus(task.id, status, remarks);
+      onDone?.();
+      onClose();
+    } catch (err) {
+      console.error("Error updating MIS task:", err);
+      setError(err?.message || "Failed to update MIS task");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const portalContent = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 z-10">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">Update MIS Task</h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {task.order?.serial_number ? `${task.order.serial_number} — ${task.order.party_name}` : "Daily / Weekly MIS Task"}
+            </p>
+          </div>
+          <button onClick={onClose} className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="mt-4 rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-3.5 space-y-1">
+            <div className="text-xs font-bold text-indigo-700 uppercase tracking-wider">{task.task_name}</div>
+            {task.description && <div className="text-xs text-slate-600">{task.description}</div>}
+            <div className="text-[11px] text-slate-400 font-medium">Assigned Day: <span className="text-slate-700 font-semibold">{task.day_name || "Monday"}</span></div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Mark Status
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { v: "Completed", label: "✓ Completed for this week" },
+                { v: "Pending", label: "Pending" },
+              ].map((opt) => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => setStatus(opt.v)}
+                  className={`rounded-xl border px-3 py-2.5 text-xs font-semibold transition ${
+                    status === opt.v
+                      ? opt.v === "Completed"
+                        ? "border-emerald-400 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-500/20"
+                        : "border-amber-400 bg-amber-50 text-amber-700 ring-2 ring-amber-500/20"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Remarks / Notes
+            </label>
+            <textarea
+              rows={3}
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Add details, file links, or execution notes..."
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-xl bg-emerald-600 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Status"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
+  return typeof document !== "undefined" ? createPortal(portalContent, document.body) : null;
+}
+
+/* ── MIS Tasks Headers ───────────────────────────────────────────────────── */
+const MIS_PENDING_HEADERS = [
+  "Action",
+  "Order",
+  "Task Name",
+  "Description",
+  "Assigned Day",
+  "Assigned To",
+  "Status",
+  "Created",
+];
+
+const MIS_COMPLETED_HEADERS = [
+  "Action",
+  "Order",
+  "Task Name",
+  "Description",
+  "Assigned Day",
+  "Assigned To",
+  "Status",
+  "Completed At",
+  "Remarks",
+];
+
+/* ── MIS Tasks Panel Hook ────────────────────────────────────────────────── */
+function useMISTasksPanel({ userRole, user, userFilterData }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusTab, setStatusTab] = useState("pending");
+  const [updateItem, setUpdateItem] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+
+  const session = useMemo(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("userSession") || "{}");
+    } catch {
+      return {};
+    }
+  }, []);
+
+  const currentUserId =
+    user?.id ||
+    user?.userId ||
+    userFilterData?.userId ||
+    userFilterData?.id ||
+    session.userId ||
+    session.id ||
+    null;
+
+  const currentUsername =
+    user?.username ||
+    userFilterData?.username ||
+    session.username ||
+    null;
+
+  const role = (userRole || user?.role || session.role || "employee").toLowerCase();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchMISTasks({
+        userId: currentUserId,
+        username: currentUsername,
+        userRole: role,
+        selectedAssignedUserId: "all",
+      });
+      setRows(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUserId, currentUsername, role]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const pending = useMemo(
+    () => rows.filter((r) => String(r.status || "").toLowerCase() !== "completed"),
+    [rows]
+  );
+
+  useEffect(() => {
+    publishCount("checklist-pending:mis-tasks", pending.length);
+  }, [pending.length]);
+
+  const completed = useMemo(
+    () => rows.filter((r) => String(r.status || "").toLowerCase() === "completed"),
+    [rows]
+  );
+
+  const filtered = useMemo(() => {
+    const base = statusTab === "completed" ? completed : pending;
+    const q = search.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter(
+      (r) =>
+        String(r.task_name || "").toLowerCase().includes(q) ||
+        String(r.order?.serial_number || "").toLowerCase().includes(q) ||
+        String(r.order?.party_name || "").toLowerCase().includes(q) ||
+        String(r.assigned_user?.name || "").toLowerCase().includes(q) ||
+        String(r.day_name || "").toLowerCase().includes(q) ||
+        String(r.status || "").toLowerCase().includes(q)
+    );
+  }, [statusTab, pending, completed, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusTab]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const paginated = useMemo(
+    () => filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [filtered, currentPage, itemsPerPage]
+  );
+
+  const renderRow = (r) => {
+    const assignedName = r.assigned_user?.name || r.assigned_user?.username || (r.assigned_user_id ? `User #${r.assigned_user_id}` : "—");
+    const orderSerial = r.order?.serial_number;
+    const partyName = r.order?.party_name;
+
+    return (
+      <tr key={r.id} className="hover:bg-slate-50/60 transition">
+        <td className="px-4 py-3 text-center align-middle">
+          <button
+            type="button"
+            onClick={() => setUpdateItem(r)}
+            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+          >
+            Update
+          </button>
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          {orderSerial ? (
+            <>
+              <div className="font-mono text-xs font-bold text-indigo-700">{orderSerial}</div>
+              <div className="text-xs text-slate-700">{partyName}</div>
+            </>
+          ) : (
+            <span className="text-xs text-slate-400">General MIS</span>
+          )}
+        </td>
+        <td className="px-4 py-3 text-center align-middle font-medium text-slate-800">
+          {r.task_name || "—"}
+        </td>
+        <td className="px-4 py-3 text-center align-middle text-xs text-slate-500 max-w-xs truncate">
+          {r.description || "—"}
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          <span className="inline-flex rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+            {r.day_name || "Monday"}
+          </span>
+        </td>
+        <td className="px-4 py-3 text-center align-middle text-xs text-slate-700">
+          {assignedName}
+        </td>
+        <td className="px-4 py-3 text-center align-middle">
+          <span
+            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyle(
+              r.status
+            )}`}
+          >
+            {r.status || "Pending"}
+          </span>
+        </td>
+        <td className="px-4 py-3 text-center text-slate-500 align-middle">
+          {statusTab === "completed"
+            ? formatDate(r.last_completed_at || r.updated_at || r.created_at)
+            : formatDate(r.created_at)}
+        </td>
+        {statusTab === "completed" && (
+          <td className="px-4 py-3 text-center text-xs text-slate-500 align-middle">
+            {r.remarks || "—"}
+          </td>
+        )}
+      </tr>
+    );
+  };
+
+  const renderCard = (r) => {
+    const assignedName = r.assigned_user?.name || r.assigned_user?.username || "—";
+    return (
+      <div key={r.id} className="p-4 sm:p-5 flex flex-col gap-4 transition-all duration-300 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden bg-white hover:shadow-md">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 opacity-80"></div>
+        <div className="flex justify-between items-start mt-1">
+          <div>
+            <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 text-lg tracking-tight">
+              {r.task_name || "—"}
+            </span>
+            {r.order?.serial_number && (
+              <p className="text-xs font-medium text-gray-500 mt-0.5">
+                {r.order.serial_number} — {r.order.party_name}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setUpdateItem(r)}
+            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700"
+          >
+            Update
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
+          <div>
+            <span className="text-gray-400 block font-semibold">Assigned Day</span>
+            <span className="font-medium text-indigo-700">{r.day_name || "Monday"}</span>
+          </div>
+          <div>
+            <span className="text-gray-400 block font-semibold">Assigned To</span>
+            <span className="font-medium text-slate-800">{assignedName}</span>
+          </div>
+          {r.description && (
+            <div className="col-span-2 text-slate-600">
+              {r.description}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const header = (
+    <>
+      <StatusSubTabs
+        tab={statusTab}
+        setTab={setStatusTab}
+        pendingCount={pending.length}
+        completedCount={completed.length}
+      />
+      <div className="relative min-w-[120px] flex-1">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search MIS tasks…"
+          className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={load}
+        className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+      >
+        <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        Refresh
+      </button>
+    </>
+  );
+
+  const body = (
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {loading ? (
+          <div className="px-4 py-12 text-center text-slate-400">Loading MIS tasks…</div>
+        ) : (
+          <DataTable
+            data={paginated}
+            renderRow={renderRow}
+            renderCard={renderCard}
+            headers={statusTab === "completed" ? MIS_COMPLETED_HEADERS : MIS_PENDING_HEADERS}
+            minWidth="min-w-[750px]"
+            currentPage={currentPage}
+            totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(n) => { setItemsPerPage(n); setCurrentPage(1); }}
+            totalResults={filtered.length}
+          />
+        )}
+      </div>
+
+      {updateItem && (
+        <MISUpdateModal
+          task={updateItem}
+          onClose={() => setUpdateItem(null)}
+          onDone={load}
+        />
+      )}
+    </div>
+  );
+
+  return { header, body };
+}
+
 /* ── Main Pending shell ─────────────────────────────────────────────────── */
 const TABS = [
   { id: "checklist", label: "Checklist", icon: ListChecks },
   { id: "delegation", label: "Delegation", icon: UserPlus },
   { id: "weekly-calls", label: "Weekly Calls", icon: Phone },
+  { id: "mis-tasks", label: "MIS Tasks", icon: ClipboardList },
 ];
 
 export default function ChecklistPending({
@@ -1415,9 +1825,7 @@ export default function ChecklistPending({
     setActiveTab?.("assign-task");
   };
 
-  // Both panels' data hooks run unconditionally (Rules of Hooks) — this also
-  // means both checklist and weekly-calls data preload in the background
-  // regardless of which sub-tab is active, so switching tabs is instant.
+  // Preload panels' data in background
   const checklist = useChecklistPanel({ userRole, user, userFilterData });
   const weekly = useWeeklyPanel({
     userRole,
@@ -1427,6 +1835,7 @@ export default function ChecklistPending({
     onEscalate: handleEscalate,
   });
   const delegation = useDelegationTasks({ userRole, user, userFilterData });
+  const misTasks = useMISTasksPanel({ userRole, user, userFilterData });
 
   return (
     <div className="h-full flex flex-col min-h-0">
@@ -1456,6 +1865,7 @@ export default function ChecklistPending({
         {tab === "checklist" && checklist.header}
         {tab === "delegation" && delegation.header}
         {tab === "weekly-calls" && weekly.header}
+        {tab === "mis-tasks" && misTasks.header}
       </div>
 
       <AnimatePresence mode="wait">
@@ -1470,6 +1880,7 @@ export default function ChecklistPending({
           {tab === "checklist" && checklist.body}
           {tab === "delegation" && delegation.body}
           {tab === "weekly-calls" && weekly.body}
+          {tab === "mis-tasks" && misTasks.body}
         </motion.div>
       </AnimatePresence>
     </div>

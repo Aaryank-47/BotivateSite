@@ -89,6 +89,7 @@ delete_task_8305.mjs
 restore_test_users.mjs
 relink_tasks_to_original_company.mjs
 cleanup_temp_users.mjs
+swap_systems_desc_dept.mjs
 schema_v6.sql
 seed.js
 *.json

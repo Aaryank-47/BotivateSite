@@ -937,23 +937,23 @@ export default function EmployeeTasksTable({
     <div className="h-full flex flex-col min-h-0 space-y-6">
 
       {/* Tabs, Search & Filter + submit */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl w-fit">
           <button
             type="button"
             onClick={() => {
               setViewTab("pending");
               setSelectedIds(new Set());
             }}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`inline-flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-lg transition-all duration-150 ${
               viewTab === "pending"
-                ? "bg-orange-100 text-orange-700"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-white text-orange-700 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
             }`}
           >
             <Clock className="w-4 h-4" />
             Pending
-            <span className="px-1.5 py-0.5 text-xs rounded-full bg-orange-200 text-orange-800">
+            <span className={`px-1.5 py-0.5 text-xs rounded-full font-semibold ${viewTab === "pending" ? "bg-orange-100 text-orange-700" : "bg-gray-200 text-gray-500"}`}>
               {pendingTasks.length}
             </span>
           </button>
@@ -964,15 +964,15 @@ export default function EmployeeTasksTable({
               setViewTab("history");
               setSelectedIds(new Set());
             }}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`inline-flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-lg transition-all duration-150 ${
               viewTab === "history"
-                ? "bg-purple-100 text-purple-700"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-white text-purple-700 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
             }`}
           >
             <History className="w-4 h-4" />
             {isSelfRole ? "My Tasks" : "History"}
-            <span className="px-1.5 py-0.5 text-xs rounded-full bg-purple-200 text-purple-800">
+            <span className={`px-1.5 py-0.5 text-xs rounded-full font-semibold ${viewTab === "history" ? "bg-purple-100 text-purple-700" : "bg-gray-200 text-gray-500"}`}>
               {historyTasks.length}
             </span>
           </button>
@@ -980,19 +980,19 @@ export default function EmployeeTasksTable({
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
+            <Search className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3.5 top-1/2" />
             <input
               type="text"
               placeholder="Search tasks..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-56 pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full sm:w-60 pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
             />
           </div>
           <Select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+            className="px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
           >
             <option value="All">All Priorities</option>
             <option value="High">High</option>
@@ -1005,14 +1005,12 @@ export default function EmployeeTasksTable({
               type="button"
               disabled={submitting || selectedIds.size === 0}
               onClick={handleSubmitAssignments}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               <Save className="w-4 h-4" />
               {submitting
                 ? "Submitting…"
-                : `Submit${
-                    selectedIds.size ? ` (${selectedIds.size})` : ""
-                  }`}
+                : `Submit${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
             </Button>
           )}
         </div>
@@ -1022,7 +1020,7 @@ export default function EmployeeTasksTable({
       {error && <ErrorMessage error={error} />}
 
       {!loading && !error && (
-        <div className="flex-1 min-h-0 overflow-hidden bg-white border border-gray-200 rounded-xl">
+        <div className="flex-1 min-h-0 overflow-hidden bg-white border border-gray-100 rounded-2xl shadow-sm">
           <DataTable
             headers={headers}
             data={paginatedTasks}

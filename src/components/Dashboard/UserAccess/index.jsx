@@ -187,6 +187,13 @@ const PAGE_META = {
     ring: "ring-amber-200",
     iconBg: "bg-amber-100 text-amber-600",
   },
+  "mis-tasks": {
+    icon: ClipboardList,
+    blurb: "Order recurring MIS tasks",
+    tint: "from-indigo-500/15 to-violet-500/5",
+    ring: "ring-indigo-200",
+    iconBg: "bg-indigo-100 text-indigo-600",
+  },
   "inform-customer": {
     icon: Send,
     blurb: "Inform client about delivery",
@@ -261,12 +268,16 @@ function defaultPermissionForRole(role) {
       troubleshoot: true,
       "ai-helper": true,
       reports: true,
+      "checklist-assign": true,
+      "checklist-pending": true,
       "delegation-form": true,
       "delegation-tasks": true,
       "pc-page": true,
       "assign-tester": true,
       tester: true,
       "approval-delivery": true,
+      "order-list": true,
+      "mis-tasks": true,
     };
   }
   if (role === "company") {
@@ -281,22 +292,32 @@ function defaultPermissionForRole(role) {
       dashboard: true,
       "assign-task": true,
       "pending-tasks": true,
+      "completed-tasks": true,
       "tasks-table": true,
       "team-overview": true,
+      "checklist-assign": true,
+      "checklist-pending": true,
       "delegation-form": true,
       "delegation-tasks": true,
       "pc-page": true,
       "assign-tester": true,
       tester: true,
       "approval-delivery": true,
+      "order-list": true,
+      "mis-tasks": true,
     };
   }
   return {
     dashboard: true,
     "assign-task": true,
     "pending-tasks": true,
+    "completed-tasks": true,
+    "checklist-assign": true,
+    "checklist-pending": true,
+    "delegation-tasks": true,
     "pc-page": true,
     tester: true,
+    "mis-tasks": true,
   };
 }
 

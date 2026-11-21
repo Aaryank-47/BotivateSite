@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   PackagePlus,
@@ -19,6 +19,7 @@ import {
   fetchAllUsersForAdmin,
 } from "../../../services/schemaApi";
 import Select from "../shared/Select";
+import SearchableDropdown from "../../SearchableDropdown";
 import { readQuotation } from "../../../utils/quotationParser";
 
 const MAX_INLINE_BYTES = 1.5 * 1024 * 1024;
@@ -134,6 +135,23 @@ export default function OrderForm({ user, setActiveTab, modal = false, onClose, 
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [done, setDone] = useState(false);
+  const [misList, setMisList] = useState([]);
+  const [selectedMis, setSelectedMis] = useState("");
+
+  // Load active employee + admin users for the MIS dropdown
+  useEffect(() => {
+    fetchAllUsersForAdmin()
+      .then((users) =>
+        setMisList(
+          users.filter(
+            (u) =>
+              (u.is_active === true || u.is_active === "true") &&
+              ["employee", "admin"].includes((u.role || "").toLowerCase())
+          )
+        )
+      )
+      .catch(() => {});
+  }, []);
 
   const set = (key) => (e) => {
     const value = e.target.value;
@@ -233,6 +251,7 @@ export default function OrderForm({ user, setActiveTab, modal = false, onClose, 
         quotation_attachment_url,
         remarks: form.remarks || null,
         created_by: user?.id || user?.userId || null,
+        mis_id: selectedMis || null,
       });
       const systemsToSave = quotationFile ? systemRows.filter((r) => r.name.trim()) : [];
       const wantsLogin = !!login.username.trim();
@@ -255,6 +274,7 @@ export default function OrderForm({ user, setActiveTab, modal = false, onClose, 
         }
       }
       setLogin({ username: "", password: "" });
+      setSelectedMis("");
       setDone(true);
       setSystemRows([emptySystem()]);
       setAutofill(null);
@@ -585,6 +605,18 @@ export default function OrderForm({ user, setActiveTab, modal = false, onClose, 
             Page access is fixed for customers (Dashboard, Assign Task, Pending Tasks). After saving, the login shows in User Access.
           </p>
         </div>
+
+        <div className={modal ? "" : "sm:w-1/2"}>
+          <label className={labelCls}>Add MIS</label>
+          <SearchableDropdown
+            options={misList.map((u) => ({ value: String(u.id), label: u.name || u.username }))}
+            value={selectedMis}
+            onChange={setSelectedMis}
+            placeholder="Select MIS"
+            buttonClassName={inputCls}
+          />
+        </div>
+        {modal && <div className="hidden sm:block" />}
 
         <div className={modal ? "sm:col-span-2" : ""}>
           <label className={labelCls}>Remarks</label>

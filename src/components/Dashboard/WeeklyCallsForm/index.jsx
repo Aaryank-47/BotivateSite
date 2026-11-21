@@ -152,16 +152,24 @@ export default function WeeklyCallsForm({
         });
       }
     });
-    // 2. Distinct party names from previous weekly calls
+    // 2. Distinct party names from previous weekly calls.
+    // Skip ones that already appear as — or inside — a registered company name,
+    // so e.g. "Acemark" doesn't show next to the company "Acemark Statiners".
+    const companyNamesLower = Array.from(map.keys());
     weeklyCalls.forEach((w) => {
       const name = (w.party_name || "").trim();
-      if (name && !map.has(name.toLowerCase())) {
-        map.set(name.toLowerCase(), {
-          label: name,
-          value: name,
-          badge: "Party",
-        });
-      }
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (map.has(key)) return;
+      const overlapsCompany = companyNamesLower.some(
+        (c) => c.includes(key) || key.includes(c)
+      );
+      if (overlapsCompany) return;
+      map.set(key, {
+        label: name,
+        value: name,
+        badge: "Party",
+      });
     });
 
     return Array.from(map.values()).sort((a, b) =>

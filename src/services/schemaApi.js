@@ -1404,7 +1404,490 @@ export const createOrder = async (payload) => {
   }
 
   if (error) throw error;
+
+  // Auto-assign existing defined MIS tasks to this new order if an MIS person was assigned
+  if (data?.id && (data.mis_id || data.staff_id)) {
+    try {
+      const assignedMis = Number(data.mis_id || data.staff_id);
+      const { data: templates } = await supabase
+        .from("mis_tasks")
+        .select("task_name, description, day_name");
+      if (templates && templates.length > 0) {
+        const seen = new Set();
+        const unique = [];
+        for (const t of templates) {
+          const key = `${t.task_name}:::${t.day_name}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(t);
+          }
+        }
+        const newRows = unique.map((t) => ({
+          order_id: data.id,
+          assigned_user_id: assignedMis,
+          task_name: t.task_name,
+          description: t.description,
+          day_name: t.day_name,
+          status: "Pending",
+          created_by: data.created_by,
+        }));
+        await supabase.from("mis_tasks").insert(newRows);
+      }
+    } catch (e) {
+      console.warn("Auto-populating MIS tasks for new order failed:", e);
+    }
+  }
+
   return data;
+};
+
+// ─── MIS Tasks ───────────────────────────────────────────────────────────────
+
+export const ensureOrderMISTasksSynced = async () => {
+  try {
+    // 1. Fetch all active orders where an MIS person is assigned
+    let { data: activeOrders, error: ordErr } = await supabase
+      .from("orders")
+      .select("id, serial_number, party_name, mis_id")
+      .not("mis_id", "is", null);
+
+    if (ordErr || !activeOrders || activeOrders.length === 0) {
+      const fallback = await supabase
+        .from("orders")
+        .select("id, serial_number, party_name, staff_id")
+        .not("staff_id", "is", null);
+      if (fallback.data) {
+        activeOrders = fallback.data.map((o) => ({ ...o, mis_id: o.staff_id }));
+      }
+    }
+
+    if (!activeOrders || activeOrders.length === 0) return;
+
+    // 2. Fetch all existing MIS tasks
+    const { data: existingTasks } = await supabase
+      .from("mis_tasks")
+      .select("id, order_id, assigned_user_id, task_name, description, day_name, status");
+
+    const allTasks = existingTasks || [];
+
+    // Distinct templates
+    const templates = [];
+    const templateKeys = new Set();
+    for (const t of allTasks) {
+      if (!t.task_name) continue;
+      const key = `${t.task_name.trim().toLowerCase()}:::${(t.day_name || "").toLowerCase()}`;
+      if (!templateKeys.has(key)) {
+        templateKeys.add(key);
+        templates.push({
+          task_name: t.task_name.trim(),
+          description: t.description,
+          day_name: t.day_name || "Monday",
+        });
+      }
+    }
+
+    if (templates.length === 0) return;
+
+    // 3. For each active order, ensure each template exists
+    const toInsert = [];
+    for (const ord of activeOrders) {
+      const ordMisId = Number(ord.mis_id);
+      if (!ordMisId) continue;
+
+      for (const tpl of templates) {
+        const hasTask = allTasks.some(
+          (t) =>
+            Number(t.order_id) === Number(ord.id) &&
+            t.task_name.trim().toLowerCase() === tpl.task_name.toLowerCase() &&
+            (t.day_name || "").toLowerCase() === tpl.day_name.toLowerCase()
+        );
+
+        if (!hasTask) {
+          toInsert.push({
+            order_id: ord.id,
+            assigned_user_id: ordMisId,
+            task_name: tpl.task_name,
+            description: tpl.description,
+            day_name: tpl.day_name,
+            status: "Pending",
+          });
+        }
+      }
+    }
+
+    // Auto-takeover: If an order's mis_id changed, sync assigned_user_id on tasks
+    for (const ord of activeOrders) {
+      const ordMisId = Number(ord.mis_id);
+      const mismatched = allTasks.filter(
+        (t) => Number(t.order_id) === Number(ord.id) && Number(t.assigned_user_id) !== ordMisId
+      );
+      for (const m of mismatched) {
+        await supabase.from("mis_tasks").update({ assigned_user_id: ordMisId }).eq("id", m.id);
+      }
+    }
+
+    // If an existing task has order_id IS NULL and assigned_user_id matching an order's mis_id, link it!
+    const unlinkedTasks = allTasks.filter((t) => !t.order_id && t.assigned_user_id);
+    for (const ut of unlinkedTasks) {
+      const matchedOrd = activeOrders.find((o) => Number(o.mis_id) === Number(ut.assigned_user_id));
+      if (matchedOrd) {
+        await supabase.from("mis_tasks").update({ order_id: matchedOrd.id }).eq("id", ut.id);
+      }
+    }
+
+    if (toInsert.length > 0) {
+      await supabase.from("mis_tasks").insert(toInsert);
+    }
+
+    // Clean up legacy "Unassigned" template rows now that each template has
+    // been fanned out to every order's MIS person. These leftover rows show up
+    // in the list as an extra Unassigned entry that nobody owns.
+    const orphanIds = allTasks
+      .filter((t) => !t.order_id && !t.assigned_user_id)
+      .map((t) => t.id);
+    if (orphanIds.length > 0) {
+      await supabase.from("mis_tasks").delete().in("id", orphanIds);
+    }
+  } catch (err) {
+    console.warn("Auto-sync of MIS tasks across orders failed:", err);
+  }
+};
+
+export const fetchMISTasks = async ({
+  userId = null,
+  username = null,
+  userRole = "admin",
+  selectedAssignedUserId = "all",
+  orderId = null,
+  page = null,
+  pageSize = null,
+  skipSync = false,
+} = {}) => {
+  const role = (userRole || "").toLowerCase();
+  const isAdmin = role === "admin" || role === "superadmin" || role === "hod";
+  const paginated = page != null && pageSize != null;
+
+  // Auto-sync missing tasks across all orders — run non-blocking so the
+  // page can render immediately. Any new rows will show on the next load.
+  if (!skipSync) {
+    ensureOrderMISTasksSynced().catch((e) =>
+      console.warn("MIS auto-sync failed:", e)
+    );
+  }
+
+  let resolvedUserId = userId ? Number(userId) : null;
+  if (!resolvedUserId && username) {
+    try {
+      const { data: u } = await supabase
+        .from("users")
+        .select("id")
+        .eq("username", username)
+        .maybeSingle();
+      if (u?.id) resolvedUserId = u.id;
+    } catch (_) {}
+  }
+
+  // Pre-fetch assigned orders if non-admin user
+  let userOrderIds = [];
+  let userOrdersMap = new Map();
+  if (!isAdmin && resolvedUserId) {
+    try {
+      let { data: userOrders } = await supabase
+        .from("orders")
+        .select("id, serial_number, party_name, mis_id")
+        .eq("mis_id", resolvedUserId);
+
+      if (!userOrders || userOrders.length === 0) {
+        const fb = await supabase
+          .from("orders")
+          .select("id, serial_number, party_name, staff_id")
+          .eq("staff_id", resolvedUserId);
+        if (fb.data) userOrders = fb.data;
+      }
+
+      (userOrders || []).forEach((o) => {
+        userOrderIds.push(o.id);
+        userOrdersMap.set(o.id, o);
+      });
+    } catch (_) {}
+  }
+
+  let query = supabase
+    .from("mis_tasks")
+    .select(
+      `
+      *,
+      order:orders!order_id(id, serial_number, party_name, mis_id),
+      assigned_user:users!assigned_user_id(id, name, username)
+    `,
+      paginated ? { count: "exact" } : undefined
+    )
+    .order("created_at", { ascending: false });
+
+  if (orderId) {
+    query = query.eq("order_id", Number(orderId));
+  }
+
+  if (isAdmin) {
+    if (selectedAssignedUserId && selectedAssignedUserId !== "all") {
+      query = query.eq("assigned_user_id", Number(selectedAssignedUserId));
+    }
+  } else if (resolvedUserId) {
+    if (userOrderIds.length > 0) {
+      query = query.or(
+        `assigned_user_id.eq.${resolvedUserId},order_id.in.(${userOrderIds.join(",")})`
+      );
+    } else {
+      query = query.eq("assigned_user_id", resolvedUserId);
+    }
+  }
+
+  if (paginated) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    query = query.range(from, to);
+  }
+
+  let { data, error, count: totalCount } = await query;
+
+  // Fallback if PostgREST schema cache / foreign key syntax differs
+  if (error) {
+    try {
+      let plainQuery = supabase
+        .from("mis_tasks")
+        .select("*", paginated ? { count: "exact" } : undefined)
+        .order("created_at", { ascending: false });
+
+      if (orderId) plainQuery = plainQuery.eq("order_id", Number(orderId));
+      if (isAdmin) {
+        if (selectedAssignedUserId && selectedAssignedUserId !== "all") {
+          plainQuery = plainQuery.eq("assigned_user_id", Number(selectedAssignedUserId));
+        }
+      } else if (resolvedUserId) {
+        if (userOrderIds.length > 0) {
+          plainQuery = plainQuery.or(
+            `assigned_user_id.eq.${resolvedUserId},order_id.in.(${userOrderIds.join(",")})`
+          );
+        } else {
+          plainQuery = plainQuery.eq("assigned_user_id", resolvedUserId);
+        }
+      }
+
+      if (paginated) {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+        plainQuery = plainQuery.range(from, to);
+      }
+
+      const res = await plainQuery;
+      if (res.error) return paginated ? { rows: [], count: 0 } : [];
+      data = res.data || [];
+      totalCount = res.count ?? totalCount;
+    } catch {
+      return paginated ? { rows: [], count: 0 } : [];
+    }
+  }
+
+  data = data || [];
+
+  // Manual join / enrichment if order or assigned_user is missing
+  if (data.length > 0) {
+    const missingOrderIds = [
+      ...new Set(data.filter((t) => t.order_id && !t.order).map((t) => t.order_id)),
+    ];
+    const missingUserIds = [
+      ...new Set(
+        data.filter((t) => t.assigned_user_id && !t.assigned_user).map((t) => t.assigned_user_id)
+      ),
+    ];
+
+    const [ordersRes, usersRes] = await Promise.all([
+      missingOrderIds.length
+        ? supabase.from("orders").select("id, serial_number, party_name, mis_id").in("id", missingOrderIds)
+        : { data: [] },
+      missingUserIds.length
+        ? supabase.from("users").select("id, name, username").in("id", missingUserIds)
+        : { data: [] },
+    ]);
+
+    const orderMap = new Map((ordersRes.data || []).map((o) => [o.id, o]));
+    const userMap = new Map((usersRes.data || []).map((u) => [u.id, u]));
+
+    data = data.map((t) => {
+      let order = t.order || orderMap.get(t.order_id) || (t.order_id ? userOrdersMap.get(t.order_id) : null);
+      let assigned_user = t.assigned_user || userMap.get(t.assigned_user_id) || null;
+
+      // If task has no order attached, but user has an assigned order, attach user's primary assigned order
+      if (!isAdmin && resolvedUserId && !order && userOrdersMap.size > 0) {
+        order = userOrdersMap.values().next().value || null;
+      }
+
+      return {
+        ...t,
+        order,
+        assigned_user,
+      };
+    });
+  }
+
+  // Final fallback filter in memory for non-admin to ensure assigned orders & tasks are always included
+  if (!isAdmin && resolvedUserId) {
+    data = data.filter((t) => {
+      const matchesUser = Number(t.assigned_user_id) === resolvedUserId;
+      const matchesOrder = t.order_id && userOrderIds.map(Number).includes(Number(t.order_id));
+      return matchesUser || matchesOrder;
+    });
+  }
+
+  // Safety net: drop orphan rows that have neither an order link nor an assignee.
+  // The sync step deletes these, but if a delete was blocked we still don't want
+  // the admin list to show a ghost "Unassigned" row.
+  data = data.filter((t) => t.assigned_user_id || t.order_id);
+
+  if (paginated) {
+    return { rows: data, count: totalCount ?? data.length };
+  }
+  return data;
+};
+
+export const createMISTasksBatch = async ({
+  order_id = null,
+  tasks,
+  created_by = null,
+  assigned_user_id = null,
+}) => {
+  if (!tasks || !tasks.length) return [];
+
+  const validTasks = tasks.filter((t) => t.task_name && t.task_name.trim());
+  if (!validTasks.length) return [];
+
+  // If a specific order is selected, assign to that order's mis_id (or explicit assigned_user_id)
+  if (order_id) {
+    let assignedUser = assigned_user_id ? Number(assigned_user_id) : null;
+    if (!assignedUser) {
+      const { data: ord } = await supabase
+        .from("orders")
+        .select("mis_id, staff_id")
+        .eq("id", Number(order_id))
+        .maybeSingle();
+      if (ord?.mis_id || ord?.staff_id) assignedUser = Number(ord.mis_id || ord.staff_id);
+    }
+
+    const rows = validTasks.map((t) => ({
+      order_id: Number(order_id),
+      assigned_user_id: assignedUser || null,
+      task_name: t.task_name.trim(),
+      description: t.description?.trim() || null,
+      day_name: t.day_name || "Monday",
+      status: "Pending",
+      created_by: created_by ? Number(created_by) : null,
+    }));
+
+    const { data, error } = await supabase.from("mis_tasks").insert(rows).select();
+    if (error) throw error;
+    return data || [];
+  }
+
+  // Automatic fan-out: When creating MIS tasks in general, distribute to ALL orders that have an assigned MIS person!
+  const { data: ordersWithMis } = await supabase
+    .from("orders")
+    .select("id, mis_id, staff_id, party_name")
+    .or("mis_id.not.is.null,staff_id.not.is.null");
+
+  const activeOrders = (ordersWithMis || []).filter((o) => o.mis_id || o.staff_id);
+
+  let rowsToInsert = [];
+  if (activeOrders.length > 0) {
+    for (const t of validTasks) {
+      for (const ord of activeOrders) {
+        rowsToInsert.push({
+          order_id: ord.id,
+          assigned_user_id: Number(ord.mis_id || ord.staff_id),
+          task_name: t.task_name.trim(),
+          description: t.description?.trim() || null,
+          day_name: t.day_name || "Monday",
+          status: "Pending",
+          created_by: created_by ? Number(created_by) : null,
+        });
+      }
+    }
+  } else {
+    // If no orders have MIS yet, create template tasks
+    rowsToInsert = validTasks.map((t) => ({
+      order_id: null,
+      assigned_user_id: assigned_user_id ? Number(assigned_user_id) : null,
+      task_name: t.task_name.trim(),
+      description: t.description?.trim() || null,
+      day_name: t.day_name || "Monday",
+      status: "Pending",
+      created_by: created_by ? Number(created_by) : null,
+    }));
+  }
+
+  const { data, error } = await supabase.from("mis_tasks").insert(rowsToInsert).select();
+  if (error) throw error;
+  return data || [];
+};
+
+export const updateMISTaskStatus = async (taskId, status, remarks = null) => {
+  const patch = {
+    status,
+    updated_at: new Date().toISOString(),
+  };
+  if (remarks !== null) patch.remarks = remarks ? String(remarks).trim() : null;
+  if (status === "Completed") {
+    patch.last_completed_at = new Date().toISOString();
+  }
+
+  const { data, error } = await supabase
+    .from("mis_tasks")
+    .update(patch)
+    .eq("id", taskId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const updateMISTask = async (taskId, updates = {}) => {
+  const patch = {
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
+  if (patch.assigned_user_id !== undefined) {
+    patch.assigned_user_id = patch.assigned_user_id ? Number(patch.assigned_user_id) : null;
+  }
+  if (patch.order_id !== undefined) {
+    patch.order_id = patch.order_id ? Number(patch.order_id) : null;
+  }
+  if (patch.status === "Completed" && !patch.last_completed_at) {
+    patch.last_completed_at = new Date().toISOString();
+  }
+
+  const { data, error } = await supabase
+    .from("mis_tasks")
+    .update(patch)
+    .eq("id", taskId)
+    .select(`
+      *,
+      order:orders!order_id(id, serial_number, party_name, mis_id),
+      assigned_user:users!assigned_user_id(id, name, username)
+    `)
+    .single();
+
+  if (error) {
+    const res = await supabase.from("mis_tasks").update(patch).eq("id", taskId).select().single();
+    if (res.error) throw res.error;
+    return res.data;
+  }
+  return data;
+};
+
+export const deleteMISTask = async (taskId) => {
+  const { error } = await supabase.from("mis_tasks").delete().eq("id", taskId);
+  if (error) throw error;
+  return true;
 };
 
 /** Company List: systems joined with company user credentials fallback */

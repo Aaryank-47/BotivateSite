@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import Modal, { Field, ReadOnlyField, inputClass } from "../shared/Modal";
 import { completeTaskWithDelivery, completeTaskSimple, postponeTask, ORDER_SYSTEM_WORK_TYPES } from "../../../services/schemaApi";
 import Select from "../shared/Select";
+import supabase from "../../../supabaseClient";
 import { requestCountsRefresh } from "../../../utils/sidebarCounts";
 
 /**
@@ -11,23 +12,55 @@ import { requestCountsRefresh } from "../../../utils/sidebarCounts";
  * Pending  -> new expected delivery date + remarks, task stays in Pending.
  */
 export default function TaskUpdateModal({ task, userId, userName, onClose, onSaved }) {
-  const isSystemType = ORDER_SYSTEM_WORK_TYPES.includes(task.typeOfWork || task.type_of_work);
+  const typeOfWork = task.typeOfWork || task.type_of_work || "";
+  const isSystemType = ORDER_SYSTEM_WORK_TYPES.includes(typeOfWork);
+  const isNewSystem = /new\s*system/i.test(typeOfWork);
+  const isExistingSystem = /existing\s*system/i.test(typeOfWork);
   const [status, setStatus] = useState("");
   const [systemLink, setSystemLink] = useState(task.linkOfSystem || "");
-  const [githubLink, setGithubLink] = useState("");
-  const [loginId, setLoginId] = useState("");
-  const [password, setPassword] = useState("");
+  const [githubLink, setGithubLink] = useState(task.githubLink || "");
+  const [loginId, setLoginId] = useState(isExistingSystem ? (task.systemLoginId || "") : "");
+  const [password, setPassword] = useState(isExistingSystem ? (task.systemPassword || "") : "");
   const [expectedDate, setExpectedDate] = useState("");
   const [remarks, setRemarks] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // For Existing System: prefill from the latest task_testing record for this system so
+  // the user doesn't retype link / github / id / pass that were saved on a prior delivery.
+  useEffect(() => {
+    if (!isExistingSystem) return;
+    const systemId = task.systemId || task.system_id;
+    if (!systemId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("task_testing")
+        .select("system_link, github_link, system_login_id, system_password")
+        .eq("system_id", systemId)
+        .order("id", { ascending: false })
+        .limit(1);
+      if (cancelled || !data || data.length === 0) return;
+      const r = data[0];
+      setSystemLink((v) => v || r.system_link || "");
+      setGithubLink((v) => v || r.github_link || "");
+      setLoginId((v) => v || r.system_login_id || "");
+      setPassword((v) => v || r.system_password || "");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isExistingSystem, task.systemId, task.system_id]);
+
   const handleSave = async () => {
     setError("");
     if (!status) return setError("Select a status.");
     if (status === "Complete") {
-      if (isSystemType) {
+      if (isSystemType || isNewSystem) {
         if (!systemLink.trim()) return setError("System Link is required.");
+        if (!loginId.trim()) return setError("Id is required.");
+        if (!password.trim()) return setError("Pass is required.");
+      } else if (isExistingSystem) {
         if (!loginId.trim()) return setError("Id is required.");
         if (!password.trim()) return setError("Pass is required.");
       }
@@ -51,6 +84,18 @@ export default function TaskUpdateModal({ task, userId, userName, onClose, onSav
             madeByName: userName,
           });
           requestCountsRefresh({ "pending-tasks": -1, "assign-tester": 1 });
+        } else if (isNewSystem || isExistingSystem) {
+          await completeTaskWithDelivery({
+            task,
+            systemLink: systemLink.trim(),
+            githubLink: githubLink.trim(),
+            loginId: loginId.trim(),
+            password: password.trim(),
+            remarks: remarks.trim(),
+            madeByUserId: userId,
+            madeByName: userName,
+          });
+          requestCountsRefresh({ "pending-tasks": -1 });
         } else {
           await completeTaskSimple({
             taskId: task.id,
@@ -144,7 +189,7 @@ export default function TaskUpdateModal({ task, userId, userName, onClose, onSav
 
       {status === "Complete" && (
         <>
-          {isSystemType ? (
+          {(isSystemType || isNewSystem) && (
             <>
               <Field full label="System Link" required>
                 <input
@@ -173,6 +218,7 @@ export default function TaskUpdateModal({ task, userId, userName, onClose, onSav
                   data-1p-ignore="true"
                   value={loginId}
                   onChange={(e) => setLoginId(e.target.value)}
+                  placeholder="Enter system login id"
                 />
               </Field>
               <Field label="Pass" required>
@@ -184,10 +230,47 @@ export default function TaskUpdateModal({ task, userId, userName, onClose, onSav
                   data-1p-ignore="true"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter system password"
                 />
               </Field>
             </>
-          ) : null}
+          )}
+          {isExistingSystem && (
+            <>
+              <Field full label="System Link">
+                <input
+                  className={inputClass}
+                  value={systemLink}
+                  onChange={(e) => setSystemLink(e.target.value)}
+                  placeholder="https://…"
+                />
+              </Field>
+              <Field full label="GitHub Link">
+                <input
+                  className={inputClass}
+                  value={githubLink}
+                  onChange={(e) => setGithubLink(e.target.value)}
+                  placeholder="https://github.com/…"
+                />
+              </Field>
+              <Field label="Id" required>
+                <input
+                  className={inputClass}
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value)}
+                  placeholder="System login id"
+                />
+              </Field>
+              <Field label="Pass" required>
+                <input
+                  className={inputClass}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="System password"
+                />
+              </Field>
+            </>
+          )}
           <Field full label="Remarks">
             <textarea
               className={inputClass}

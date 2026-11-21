@@ -44,6 +44,9 @@ const COL = {
 
 function cellStyle(key, type) {
   let w = COL[key]?.width;
+  if (key === "linkOfSystem" && type !== "completed") {
+    w = 210;
+  }
   if (key === "linkOfSystem" && type === "completed") {
     w = 210;
   }
@@ -54,7 +57,7 @@ function cellStyle(key, type) {
     maxWidth:
       key === "descriptionOfWork" || key === "notes" || key === "remarks"
         ? w + 80
-        : key === "linkOfSystem" && type === "completed"
+        : key === "linkOfSystem"
         ? 250
         : w,
   };
@@ -65,7 +68,9 @@ function renderCell(column, task, type) {
   const value = task[key];
 
   if (key === "linkOfSystem") {
-    if (type === "completed") {
+    const tw = String(task.typeOfWork || "");
+    const isSystemWork = /new\s*system/i.test(tw) || /existing\s*system/i.test(tw);
+    if (type === "completed" || isSystemWork || task.systemLoginId || task.systemPassword) {
       return <TaskAccessCell task={task} />;
     }
     if (!value) return <span className="text-gray-400">—</span>;
@@ -219,11 +224,11 @@ export default function TaskTable({
       : []),
     ...filteredColumns.map((column) => ({
       label:
-        column.key === "linkOfSystem" && type === "completed"
+        column.key === "linkOfSystem"
           ? "Link / Access"
           : column.label,
       width:
-        column.key === "linkOfSystem" && type === "completed"
+        column.key === "linkOfSystem"
           ? 210
           : COL[column.key]?.width,
     })),

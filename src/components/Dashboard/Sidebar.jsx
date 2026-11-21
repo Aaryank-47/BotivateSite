@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import supabase from "../../supabaseClient"
 import { fetchPendingCounts } from "../../services/schemaApi"
 import { subscribeCounts, countForTab, onCountsRefresh } from "../../utils/sidebarCounts"
+import { setCookie } from "../../utils/jwt"
 import {
   BarChart3,
   Plus,
@@ -83,6 +84,7 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
       "add-company": "Add Company",
       "holidays": "Holidays",
       "order-list": "Order List",
+      "mis-tasks": "MIS Tasks",
       "meeting": "Meeting",
       "company-systems": "My Systems",
       "company-tasks": "My Tasks",
@@ -117,12 +119,13 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
     { id: "add-user", label: getTabLabel("add-user", userRole), icon: UserPlus, key: "add-user" },
     { id: "add-company", label: getTabLabel("add-company", userRole), icon: Building2, key: "add-company" },
     { id: "order-list", label: getTabLabel("order-list", userRole), icon: Package, key: "order-list" },
+    { id: "mis-tasks", label: getTabLabel("mis-tasks", userRole), icon: ClipboardList, key: "mis-tasks" },
     { id: "meeting", label: getTabLabel("meeting", userRole), icon: CalendarCheck, key: "meeting" },
     // company accounts only: their own systems page (click a system to see its tasks)
     ...((userRole || "").toLowerCase() === "company"
       ? [
           { id: "company-systems", label: getTabLabel("company-systems", userRole), icon: Building2, key: "company-systems" },
-          { id: "company-tasks", label: "My Tasks", icon: CheckCircle, key: "company-tasks" },
+          { id: "company-tasks", label: "Task Overview", icon: CheckCircle, key: "company-tasks" },
           { id: "company-profile", label: getTabLabel("company-profile", userRole), icon: User, key: "company-profile" },
         ]
       : []),
@@ -159,6 +162,9 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
           const companyRequired = ["dashboard", "company-systems", "company-tasks", "troubleshoot", "ai-helper", "company-profile"]
           return [...new Set([...keys, ...companyRequired])]
         }
+        if (role === "admin" || role === "superadmin") {
+          return [...new Set([...keys, "mis-tasks"])]
+        }
         return keys
       }
     }
@@ -168,7 +174,9 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
     if (pag) {
       if (pag === "all") return ["all"]
       if (Array.isArray(pag) && pag.length > 0) {
-        return pag.map((p) => String(p).toLowerCase())
+        const arr = pag.map((p) => String(p).toLowerCase())
+        if (role === "admin" || role === "superadmin") return [...new Set([...arr, "mis-tasks"])]
+        return arr
       }
       if (typeof pag === "string") {
         try {
@@ -176,13 +184,19 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
           if (parsed && typeof parsed === "object") {
             if (parsed.all === true) return ["all"]
             const keys = Object.keys(parsed).filter((k) => parsed[k] === true)
-            if (keys.length > 0) return keys
+            if (keys.length > 0) {
+              if (role === "admin" || role === "superadmin") return [...new Set([...keys, "mis-tasks"])]
+              return keys
+            }
           }
         } catch {
           /* ignore */
         }
         const split = pag.split(",").map((p) => p.trim().toLowerCase()).filter(Boolean)
-        if (split.length > 0) return split
+        if (split.length > 0) {
+          if (role === "admin" || role === "superadmin") return [...new Set([...split, "mis-tasks"])]
+          return split
+        }
       }
     }
 
@@ -191,11 +205,11 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
       admin: ["all"],
       hod: [
         "dashboard", "assign-task", "pending-tasks", "completed-tasks", "tasks-table",
-        "delegation-form", "delegation-tasks", "pc-page",
+        "delegation-form", "delegation-tasks", "checklist-assign", "checklist-pending", "pc-page",
         "assign-tester", "tester", "approval-delivery", "order-list", "meeting", "holidays",
       ],
       employee: [
-        "dashboard", "assign-task", "pending-tasks", "completed-tasks", "pc-page", "tester", "meeting", "holidays",
+        "dashboard", "assign-task", "pending-tasks", "completed-tasks", "checklist-assign", "checklist-pending", "delegation-tasks", "pc-page", "tester", "meeting", "holidays",
       ],
       company: [
         "dashboard", "company-systems", "company-tasks", "troubleshoot", "ai-helper", "company-profile",
@@ -206,6 +220,9 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
     if (role === "company") {
       const companyRequired = ["dashboard", "company-systems", "company-tasks", "troubleshoot", "ai-helper", "company-profile"]
       return [...new Set([...base, ...companyRequired])]
+    }
+    if (role === "admin" || role === "superadmin") {
+      return [...new Set([...base, "mis-tasks"])]
     }
     return base
   }
@@ -280,6 +297,8 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
               sess.permissions = perm
               sess.pagination = newPerms
               sessionStorage.setItem("userSession", JSON.stringify(sess))
+              window.dispatchEvent(new CustomEvent("userSessionUpdated", { detail: sess }))
+              setCookie("userSession", sess, 7)
             } catch {
               /* ignore */
             }
@@ -559,7 +578,7 @@ const Sidebar = ({ activeTab, setActiveTab, onClose, isMobile, user, userFilterD
                   "reports",
                 ]
             const checklistChildren = visibleTabs.filter((t) =>
-              checklistChildIds.includes(t.id)
+              checklistChildIds.includes(t.id) || legacyDelegationIds.includes(t.id)
             )
             const orderChildren = visibleTabs
               .filter((t) => orderChildIds.includes(t.id))

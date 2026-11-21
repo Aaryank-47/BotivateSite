@@ -10,6 +10,7 @@ import DataTable from "../shared/DataTable";
 const HEADERS = [
   "Serial",
   "Party name",
+  "MIS",
   "Type of work",
   "Start",
   "End",
@@ -126,6 +127,7 @@ export default function OrderList({ user, userRole, setActiveTab, setSelectedCom
       [
         r.serial_number,
         r.party_name,
+        r.mis?.name || r.staff?.name,
         r.type_of_work,
         r.payment_type,
         r.quotation_number,
@@ -159,6 +161,9 @@ export default function OrderList({ user, userRole, setActiveTab, setSelectedCom
       </td>
       <td className="px-3 py-3 text-center font-medium text-slate-800 whitespace-nowrap align-middle">
         {r.party_name || "—"}
+      </td>
+      <td className="px-3 py-3 text-center text-slate-600 whitespace-nowrap align-middle">
+        {r.mis?.name || r.mis?.username || r.staff?.name || r.staff?.username || "—"}
       </td>
       <td className="px-3 py-3 text-center text-slate-600 whitespace-nowrap align-middle">
         {r.type_of_work || "—"}
@@ -234,6 +239,10 @@ export default function OrderList({ user, userRole, setActiveTab, setSelectedCom
         <div>
           <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Start Date</span>
           <span className="font-semibold text-gray-900">{formatDate(r.start_date)}</span>
+        </div>
+        <div>
+          <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">MIS</span>
+          <span className="font-semibold text-gray-900">{r.mis?.name || r.mis?.username || r.staff?.name || r.staff?.username || "—"}</span>
         </div>
         <div>
           <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Payment</span>

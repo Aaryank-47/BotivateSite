@@ -38,6 +38,7 @@ const DEFAULTS = {
   checklist_tasks: () => ({}),
   weekly_calls: () => ({}),
   orders: () => ({ status: "Submitted", type_of_work: "Project", nda_required: false }),
+  mis_tasks: () => ({ status: "Pending", created_at: nowIso(), updated_at: nowIso() }),
 };
 
 const UNIQUE = { users: ["username"], user_tasks: ["task_no"], orders: ["serial_number"] };
@@ -45,6 +46,11 @@ const UNIQUE = { users: ["username"], user_tasks: ["task_no"], orders: ["serial_
 const applyTriggers = (table, row) => {
   if (table === "user_tasks" && !row.task_no) row.task_no = `TASK-${pad5(row.id)}`;
   if (table === "orders" && !row.serial_number) row.serial_number = `ORD-${pad5(row.id)}`;
+  if (table === "mis_tasks" && !row.assigned_user_id && row.order_id) {
+    const orders = db.tables.orders || [];
+    const ord = orders.find((o) => String(o.id) === String(row.order_id));
+    if (ord?.mis_id) row.assigned_user_id = ord.mis_id;
+  }
   return row;
 };
 

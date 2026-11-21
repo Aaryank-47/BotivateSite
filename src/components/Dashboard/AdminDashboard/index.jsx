@@ -53,6 +53,7 @@ import CompanySystemsPage from "../CompanySystemsPage";
 import CompanyTasksPage from "../CompanyTasksPage";
 import SystemTasksPage from "../SystemTasksPage";
 import MeetingTrainingPage from "../Meeting";
+import MISTasksPage from "../MISTasks";
 import supabase from "../../../supabaseClient";
 import OverviewContent from "./OverviewContent";
 import {
@@ -107,6 +108,48 @@ export default function AdminDashboard({
   const [completeTask, setCompleteTask] = useState(0);
 
   const userRole = determineUserRole(username, userFilterData, companyData);
+
+  const [syncedPermissions, setSyncedPermissions] = useState(() => {
+    try {
+      const sess = JSON.parse(sessionStorage.getItem("userSession") || "{}");
+      if (sess?.permission) return sess.permission;
+    } catch (_) {}
+    return user?.permission || user?.permissions || null;
+  });
+
+  useEffect(() => {
+    const onSessionUpdate = (e) => {
+      if (e.detail?.permission) {
+        setSyncedPermissions(e.detail.permission);
+      }
+    };
+    window.addEventListener("userSessionUpdated", onSessionUpdate);
+    return () => window.removeEventListener("userSessionUpdated", onSessionUpdate);
+  }, []);
+
+  useEffect(() => {
+    const fetchFreshPerms = async () => {
+      const uId = user?.userId || user?.id || userFilterData?.userId;
+      const uName = username || user?.username;
+      if (!uId && !uName) return;
+      try {
+        let query = supabase.from("users").select("permission");
+        if (uId) query = query.eq("id", uId);
+        else query = query.eq("username", uName);
+        const { data: row } = await query.maybeSingle();
+        if (row?.permission) {
+          let p = row.permission;
+          if (typeof p === "string") {
+            try { p = JSON.parse(p); } catch (_) {}
+          }
+          if (p && typeof p === "object") {
+            setSyncedPermissions(p);
+          }
+        }
+      } catch (_) {}
+    };
+    fetchFreshPerms();
+  }, [username, user?.userId, user?.id, userFilterData?.userId]);
 
 
   useEffect(() => {
@@ -262,23 +305,76 @@ export default function AdminDashboard({
     if (role === "superadmin") return true;
     if (activeTab === "overview" || activeTab === "system-tasks") return true;
 
-    const permObj = user?.permission || user?.permissions;
-    if (permObj?.all === true) return true;
-    const pag = pagination || user?.pagination;
-    if (pag === "all") return true;
+    // Internal members (employee, hod, admin, user) must always be allowed to access
+    // their personal Pending Tasks view (checklist, delegation, weekly calls, mis tasks).
+    if (activeTab === "checklist-pending") {
+      if (role !== "company") return true;
+    }
+
+    let currentPermObj = syncedPermissions || user?.permission || user?.permissions;
+    try {
+      if (!currentPermObj) {
+        const stored = sessionStorage.getItem("userSession");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          currentPermObj = parsed.permission || parsed.permissions;
+        }
+      }
+    } catch (_) {}
+
+    if (typeof currentPermObj === "string") {
+      try {
+        currentPermObj = JSON.parse(currentPermObj);
+      } catch (_) {}
+    }
+
+    if (currentPermObj?.all === true) return true;
+
+    if (activeTab === "mis-tasks") {
+      return role === "admin" || role === "superadmin" || !!currentPermObj?.["mis-tasks"];
+    }
 
     // Company systems / tasks drilldown: always allowed for company role
     if (activeTab === "company-systems" || activeTab === "company-tasks") {
       if (role === "company") return true;
     }
 
-    const perms = Array.isArray(pag)
-      ? pag
-      : permObj && typeof permObj === "object"
-      ? Object.keys(permObj).filter((k) => permObj[k] === true)
-      : [];
+    let currentPag = null;
+    try {
+      const stored = sessionStorage.getItem("userSession");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        currentPag = parsed.pagination;
+      }
+    } catch (_) {}
+    const pag = currentPag || pagination || user?.pagination;
+    if (pag === "all") return true;
 
-    if (perms.length === 0) return true;
+    const perms =
+      currentPermObj && typeof currentPermObj === "object"
+        ? Object.keys(currentPermObj).filter((k) => currentPermObj[k] === true)
+        : Array.isArray(pag)
+        ? pag
+        : [];
+
+    if (perms.length === 0) {
+      if (role !== "company") {
+        const internalAllowed = [
+          "dashboard",
+          "overview",
+          "checklist-pending",
+          "pending-tasks",
+          "completed-tasks",
+          "assign-task",
+          "tester",
+          "meeting",
+          "holidays",
+          "pc-page",
+        ];
+        if (internalAllowed.includes(activeTab)) return true;
+      }
+      return true;
+    }
 
     const tabNorm = activeTab.toLowerCase().replace(/[-_\s]/g, "");
     return perms.some((p) => {
@@ -288,7 +384,13 @@ export default function AdminDashboard({
         (pNorm === "dashboard" && tabNorm === "overview") ||
         (pNorm === "overview" && tabNorm === "dashboard") ||
         (pNorm === "useraccess" && tabNorm === "useraccess") ||
-        (pNorm === "orderlist" && tabNorm === "companysystems")
+        (pNorm === "orderlist" && tabNorm === "companysystems") ||
+        (pNorm === "pendingtask" && (tabNorm === "pendingtasks" || tabNorm === "checklistpending")) ||
+        (pNorm === "pendingtasks" && (tabNorm === "pendingtasks" || tabNorm === "checklistpending")) ||
+        (pNorm === "completedtask" && (tabNorm === "completedtasks" || tabNorm === "checklistcompleted")) ||
+        (pNorm === "delegation" && (tabNorm === "delegationform" || tabNorm === "delegationtasks")) ||
+        (pNorm === "checklist" && (tabNorm === "checklistassign" || tabNorm === "checklistpending")) ||
+        (pNorm === "settings" && (tabNorm === "adduser" || tabNorm === "addcompany"))
       );
     });
   };
@@ -457,6 +559,15 @@ export default function AdminDashboard({
           <HolidaysPage
             userRole={userRole}
             userFilterData={userFilterData}
+          />
+        );
+      case "mis-tasks":
+        return (
+          <MISTasksPage
+            user={user}
+            userRole={userRole}
+            userFilterData={userFilterData}
+            setActiveTab={setActiveTab}
           />
         );
       case "order-list":

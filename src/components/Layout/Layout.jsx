@@ -200,7 +200,7 @@ const Layout = ({ user, userFilterData, companyData, onLogout }) => {
 
             {/* Sidebar - Desktop & Mobile */}
             <div className={`
-        fixed inset-y-0 left-0 z-30 w-72 transform bg-white border-r border-gray-100 transition duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col h-[100dvh] lg:h-auto
+        fixed inset-y-0 left-0 z-30 w-80 transform bg-white border-r border-gray-100 transition duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col h-[100dvh] lg:h-auto
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
                 <Sidebar
